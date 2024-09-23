@@ -2,7 +2,9 @@
 name = "uniplate-derive"
 version = "0.1.0-beta.1"
 edition = "2021"
-description="Boilerplate-free generic operations on data, Haskell style."
+description = "Helper crate for uniplate"
+readme = "README.md"
+repository = "https://github.com/conjure-cp/uniplate"
 license = "MPL-2.0"
 
 [lib]
