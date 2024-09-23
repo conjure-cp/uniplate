@@ -1,0 +1,17 @@
+version: 2
+
+updates:
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: monthly
+    reviewers:
+      - niklasdewally 
+    groups:
+      all:
+        patterns:
+          - '*'
+    labels:
+      - "dependencies"
+      - "dependencies::rust"
