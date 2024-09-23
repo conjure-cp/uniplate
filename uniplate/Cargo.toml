@@ -1,9 +1,14 @@
 [package]
 name = "uniplate"
 version = "0.1.0-beta.1"
+authors = ["Niklas Dewally <niklas@dewally.com>","Ozgur Akgun"]
 edition = "2021"
-description="Boilerplate-free generic operations on data, Haskell style."
+description = "Boilerplate-free, generic tree traversals"
+readme = "README.md"
+repository = "https://github.com/conjure-cp/uniplate"
 license = "MPL-2.0"
+keywords = ["macro"]
+categories = ["rust-patterns","data-structures","algorithms","parsing"]
 
 [lib]
 
