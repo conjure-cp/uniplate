@@ -156,7 +156,7 @@ fn _derive_children(state: &mut ParserState, fields: &[ast::Field]) -> TokenStre
         0 => quote! {let children = ::uniplate::Tree::Zero;},
         _ => {
             let subtrees = subtrees.iter();
-            quote! {let children = ::uniplate::Tree::Many(::im::vector![#(#subtrees),*]);}
+            quote! {let children = ::uniplate::Tree::Many(::uniplate::_dependencies::im::vector![#(#subtrees),*]);}
         }
     }
 }
