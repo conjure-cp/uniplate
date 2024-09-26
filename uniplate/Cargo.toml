@@ -10,8 +10,8 @@ description = "Simple, boilerplate-free operations on tree-shaped data types"
 readme = "../README.md" # use base repository's readme.
 repository = "https://github.com/conjure-cp/uniplate"
 license = "MPL-2.0"
-keywords = ["macro"]
-categories = ["rust-patterns", "data-structures", "algorithms", "parsing"]
+keywords = ["generics", "traversals", "macro"]
+categories = ["rust-patterns", "data-structures", "algorithms"]
 
 [lib]
 
