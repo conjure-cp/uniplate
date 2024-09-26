@@ -1,6 +1,4 @@
 #![doc = include_str!("intro.md")]
-//! Uniplate provides simple and low-boilerplate ways to traverse and manipulate data structures.
-//! A port of Haskell's [Uniplate](https://hackage.haskell.org/package/uniplate) in Rust.
 
 #[doc(hidden)]
 extern crate self as uniplate;
@@ -9,7 +7,7 @@ pub mod impls;
 mod traits;
 mod tree;
 
-pub use traits::{Uniplate, Biplate};
+pub use traits::{Biplate, Uniplate};
 
 #[doc(hidden)]
 pub use tree::Tree;
@@ -17,8 +15,9 @@ pub use tree::Tree;
 #[doc(hidden)]
 pub mod test_common;
 
+/// The derive macro.
 pub mod derive {
-    pub use uniplate_derive::Uniplate as Uniplate;
+    pub use uniplate_derive::Uniplate;
 }
 
 #[doc(hidden)]
@@ -26,20 +25,29 @@ pub mod _dependencies {
     pub use im;
 }
 
-
 /// Generates a Biplate and Uniplate instance for an unplateable type.
 #[macro_export]
 macro_rules! derive_unplateable {
     ($t:ty) => {
         impl Uniplate for $t {
-            fn uniplate(&self) -> (::uniplate::Tree<Self>, Box<dyn Fn(::uniplate::Tree<Self>) -> Self>) {
+            fn uniplate(
+                &self,
+            ) -> (
+                ::uniplate::Tree<Self>,
+                Box<dyn Fn(::uniplate::Tree<Self>) -> Self>,
+            ) {
                 let val = self.clone();
                 (::uniplate::Tree::Zero, Box::new(move |_| val.clone()))
             }
         }
 
         impl Biplate<$t> for $t {
-            fn biplate(&self) -> (::uniplate::Tree<$t>, Box<dyn Fn(::uniplate::Tree<$t>) -> $t>) {
+            fn biplate(
+                &self,
+            ) -> (
+                ::uniplate::Tree<$t>,
+                Box<dyn Fn(::uniplate::Tree<$t>) -> $t>,
+            ) {
                 let val = self.clone();
                 (
                     ::uniplate::Tree::One(val.clone()),
@@ -50,7 +58,7 @@ macro_rules! derive_unplateable {
     };
 }
 
-// Generates a Biplate and Uniplate instance for an iterable type.
+/// Generates a Biplate and Uniplate instance for an iterable type.
 #[macro_export]
 macro_rules! derive_iter {
     ($iter_ty:ident) => {
@@ -59,7 +67,12 @@ macro_rules! derive_iter {
             T: Clone + Eq + Uniplate + Sized + 'static,
             F: Clone + Eq + Uniplate + Biplate<T> + Sized + 'static,
         {
-            fn biplate(&self) -> (::uniplate::Tree<T>, Box<(dyn Fn(::uniplate::Tree<T>) -> $iter_ty<F>)>) {
+            fn biplate(
+                &self,
+            ) -> (
+                ::uniplate::Tree<T>,
+                Box<(dyn Fn(::uniplate::Tree<T>) -> $iter_ty<F>)>,
+            ) {
                 if (self.is_empty()) {
                     let val = self.clone();
                     return (::uniplate::Tree::Zero, Box::new(move |_| val.clone()));
@@ -130,7 +143,12 @@ macro_rules! derive_iter {
         where
             T: Clone + Eq + Uniplate + Sized + 'static,
         {
-            fn uniplate(&self) -> (::uniplate::Tree<Self>, Box<dyn Fn(::uniplate::Tree<Self>) -> Self>) {
+            fn uniplate(
+                &self,
+            ) -> (
+                ::uniplate::Tree<Self>,
+                Box<dyn Fn(::uniplate::Tree<Self>) -> Self>,
+            ) {
                 let val = self.clone();
                 (Zero, Box::new(move |_| val.clone()))
             }

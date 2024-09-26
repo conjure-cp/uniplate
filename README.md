@@ -77,7 +77,7 @@ use uniplate::{Uniplate,Biplate};
 use uniplate::derive::Uniplate;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
 #[uniplate()]
-#[biplate(to=String])]
+#[biplate(to=String)]
 enum Expr {
     Add(Box<Expr>, Box<Expr>),
     Sub(Box<Expr>, Box<Expr>),
@@ -89,7 +89,7 @@ enum Expr {
 }
 
 fn vars_names(expr: &Expr) -> Vec<String>{
-    <Expr as Biplate<String>>::universe_bi(expr).into_iter().collect();
+    <Expr as Biplate<String>>::universe_bi(expr).into_iter().collect()
 }
 ```
 
@@ -151,7 +151,7 @@ enum Expr {
 }
 
 fn vars_names(stmt: &Stmt) -> Vec<String>{
-    <Stmt as Biplate<String>>::universe_bi(stmt).into_iter().collect();
+    <Stmt as Biplate<String>>::universe_bi(stmt).into_iter().collect()
 }
 
 ```
