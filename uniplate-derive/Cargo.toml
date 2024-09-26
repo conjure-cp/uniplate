@@ -1,6 +1,6 @@
 [package]
 name = "uniplate-derive"
-version = "0.1.0-beta.1"
+version = "0.1.0"
 edition = "2021"
 description = "Helper crate for uniplate"
 readme = "README.md"
