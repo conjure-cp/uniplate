@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use uniplate::derive::Uniplate;
-use uniplate::{Biplate, Uniplate};
+use uniplate::Biplate;
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[uniplate()]
