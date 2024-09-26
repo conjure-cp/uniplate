@@ -1,6 +1,6 @@
 [package]
 name = "uniplate"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Niklas Dewally <niklas@dewally.com>","Ozgur Akgun"]
 edition = "2021"
 description = "Simple, boilerplate-free operations on tree-shaped data types"
@@ -17,7 +17,7 @@ im = {version = "15.1.0", features = ["proptest"]}
 proptest = "1.5.0"
 proptest-derive = "0.5.0"
 thiserror = "1.0.61"
-uniplate-derive = {version = "0.1.0", path = "../uniplate-derive"}
+uniplate-derive = {version = "0.1.1", path = "../uniplate-derive"}
 
 [dev-dependencies]
 trybuild = "1.0.91"
