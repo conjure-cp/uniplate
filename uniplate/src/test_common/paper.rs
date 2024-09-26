@@ -1,6 +1,6 @@
 use crate::derive::Uniplate;
-use crate::{Biplate, Uniplate};
-use prop::sample::SizeRange;
+#[cfg(test)]
+use crate::Uniplate;
 use proptest::prelude::*;
 
 // Examples found in the Uniplate paper.
