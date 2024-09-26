@@ -4,7 +4,7 @@ use std::iter::zip;
 
 use im::vector;
 //use uniplate::test_common::paper::*;
-use uniplate::biplate::*;
+use uniplate::{Uniplate,Biplate,Tree};
 
 use self::Expr::*;
 

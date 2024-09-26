@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use uniplate::{biplate::Biplate, Uniplate};
+use uniplate::{Biplate, Uniplate,derive::Uniplate};
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[biplate(to=Expr)]

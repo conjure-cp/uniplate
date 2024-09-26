@@ -1,5 +1,5 @@
-use crate::biplate::Uniplate;
-use crate::Uniplate;
+use crate::derive::Uniplate;
+use crate::{Uniplate,Biplate};
 use prop::sample::SizeRange;
 use proptest::prelude::*;
 

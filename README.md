@@ -17,11 +17,11 @@ Quick links:
 
 *Adapted from (Mitchell and Runciman 2007)*
 
-Uniplate makes the traversal and querying of tree-shaped data easy and
-boilerplate free. A good usecase of Uniplate is the manipulations of abstract
-syntax trees:
+Uniplate makes the traversal and querying of tree shaped data easy and
+boilerplate free. A good use case of Uniplate is the manipulation of abstract
+syntax trees.
 
-Consider the AST for a simple calculator langage:
+Consider the AST for a simple calculator language:
 
 ```rust
 enum Expr {
@@ -73,6 +73,8 @@ functions (e.g. one that change all the variable names).
 With Uniplate, this boilerplate can be eliminated:
 
 ```rust
+use uniplate::{Uniplate,Biplate};
+use uniplate::derive::Uniplate;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
 #[uniplate()]
 #[biplate(to=String])]
@@ -121,6 +123,8 @@ variable names used by child expressions.
 
 
 ```rust
+use uniplate::{Uniplate,Biplate};
+use uniplate::derive::Uniplate;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
 // look for strings inside expressions as well as statements 
 #[biplate(to=String,walk_into=[Expr])]
