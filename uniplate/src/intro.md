@@ -1,13 +1,11 @@
 **Uniplate helps you write simple, boilerplate-free operations on tree shaped data types.**
 
-A port of Haskell's [Uniplate](https://hackage.haskell.org/package/uniplate) in
-Rust.
-
----
+- A port of Haskell's [Uniplate](https://hackage.haskell.org/package/uniplate)
+library in Rust.
 
 # Getting Started 
 
-*Adapted from (Mitchell and Runciman 2009)*
+*Adapted from (Mitchell and Runciman 2007)*
 
 Consider the abstract syntax tree for a simple calculator language:
 
@@ -28,19 +26,19 @@ Say we want to list all the used variable names inside a given expression:
 ```rust
 # use uniplate::test_common::paper::Expr::*;
 # use uniplate::test_common::paper::Expr;
-fn vars(expr: &Expr) -> Vec<String>{
+fn var_names(expr: &Expr) -> Vec<String>{
     match expr {
         Add(a,b) => {
-            [vars(a),vars(b)].concat()
+            [var_names(a),var_names(b)].concat()
         },
         Sub(a,b) => {
-            [vars(a),vars(b)].concat()
+            [var_names(a),var_names(b)].concat()
         },
         Mul(a,b) => {
-            [vars(a),vars(b)].concat()
+            [var_names(a),var_names(b)].concat()
         },
         Div(a,b) => {
-            [vars(a),vars(b)].concat()
+            [var_names(a),var_names(b)].concat()
         },
         Val(a) => {
             Vec::new()
@@ -49,7 +47,7 @@ fn vars(expr: &Expr) -> Vec<String>{
             vec![a.clone()]
         },
         Neg(a) =>{
-            vars(a)
+            var_names(a)
         }
     }
 }
@@ -66,7 +64,7 @@ With Uniplate, this boilerplate can be eliminated:
 # use uniplate::test_common::paper::Expr::*;
 # use uniplate::test_common::paper::Expr;
 use uniplate::Biplate;
-fn vars(expr: &Expr) -> Vec<String>{
+fn var_names(expr: &Expr) -> Vec<String>{
     <Expr as Biplate<String>>::universe_bi(expr).into_iter().collect()
 }
 ```
@@ -75,8 +73,8 @@ The functionality of Uniplate comes from two main traits: [`Uniplate`](Uniplate)
 [`Biplate<T>`](Biplate).
 
 * The [`Uniplate`](Uniplate) of `Expr` operates over all nested `Expr`s.
-* The [`Biplate<T>`](Biplate) of `Expr` operates over all nested values of some given type `T` within the
-  expression tree.
+* The [`Biplate<T>`](Biplate) of `Expr` operates over all nested values of type
+  `T` in the expression tree.
 
 These traits provide traversal operations (e.g. [`children`](Uniplate::children)) as well as
 functional programming constructs such as [`map`](Uniplate::map) and [`fold`](Uniplate::fold).
@@ -86,11 +84,12 @@ The easiest way to use Uniplate is with the derive macro.
 
 ## Derive Macro
 
-When no arguments are provided, the macro derives a Uniplate instance:
+To derive Uniplate instances, use the `#[uniplate]` attribute:
 
 ```rust
 use uniplate::derive::Uniplate;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
+#[uniplate()]
 enum Expr {
     Add(Box<Expr>, Box<Expr>),
     Sub(Box<Expr>, Box<Expr>),
@@ -122,7 +121,8 @@ enum Expr {
 
 ## Multi-type traversals
 
-Lets expand our calculator language to include statements as well as expressions:
+Uniplate also supports trees with multiple recursive types. Lets extend our
+calculator language to include statements as well as expressions:
 
 ```rust
 enum Expr {
@@ -143,41 +143,28 @@ enum Stmt {
 }
 ```
 
-When looking for `Strings` in a given `Stmt`, we may want to identify not only the strings
-directly contained within a `Stmt`, but also any strings contained inside an `Expr` inside a
-`Stmt`.
-
-For example:
+When looking for variable names in a given statement, we want to identify not
+only the variable names directly used inside the statement, but also any
+variable names used by child expressions:
 
 ```rust
-# use uniplate::test_common::paper::Expr::*;
-# use uniplate::test_common::paper::Expr::*;
-# use uniplate::test_common::paper::Stmt;
-# use uniplate::test_common::paper::Stmt::*;
-use uniplate::{Biplate,Uniplate};
 use uniplate::derive::Uniplate;
-
-let stmt = Assign("x".into(), Add(Box::new(Var("y".into())),Box::new(Val(10))));
-let strings = <Stmt as Biplate<String>>::universe_bi(&stmt);
-
-assert!(strings.contains(&"x".into()));
-
-// Despite being inside an Expr::String, "y" is found by Biplate
-assert!(strings.contains(&"y".into()));
-
-assert_eq!(strings.len(), 2);
-```
-
-
-To do this, a list of types to "walk into" can be given as an argument to the Biplate
-declaration:
-```rust
-use uniplate::Uniplate;
-use uniplate::derive::Uniplate;
+use uniplate::{Uniplate,Biplate};
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
-#[uniplate()]
+// look for strings inside expressions as well as statements 
 #[biplate(to=String,walk_into=[Expr])]
-#[biplate(to=Stmt)]
+#[biplate(to=Expr)]
+#[uniplate()]
+enum Stmt {
+    Assign(String, Expr),
+    Sequence(Vec<Stmt>),
+    If(Expr, Box<Stmt>, Box<Stmt>),
+    While(Expr, Box<Stmt>),
+}
+
+#[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
+#[biplate(to=String)]
+#[uniplate()]
 enum Expr {
     Add(Box<Expr>, Box<Expr>),
     Sub(Box<Expr>, Box<Expr>),
@@ -188,19 +175,13 @@ enum Expr {
     Neg(Box<Expr>),
 }
 
-// Uniplate also supports walk_into.
-// In this case, it doesn't do much.
-#[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
-#[biplate(to=String, walk_into=[Expr])]
-#[biplate(to=Expr,walk_into=[Expr])]
-#[uniplate(walk_into=[Expr])]
-enum Stmt {
-    Assign(String, Expr),
-    Sequence(Vec<Stmt>),
-    If(Expr, Box<Stmt>, Box<Stmt>),
-    While(Expr, Box<Stmt>),
+fn vars_names(stmt: &Stmt) -> Vec<String>{
+    <Stmt as Biplate<String>>::universe_bi(stmt).into_iter().collect()
 }
 ```
+
+The types given to the `walk_into` argument are recursed through by uniplate.
+Both `#[uniplate]` and `#[biplate]` support the `walk_into` parameter.
 
 
 # Bibliography

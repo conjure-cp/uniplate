@@ -7,6 +7,7 @@ use std::sync::Arc;
 pub use super::Tree;
 use im::vector;
 
+/// `Biplate<U>` for type `T` operates over all values of type `U` within `T`.
 pub trait Biplate<To>
 where
     Self: Sized + Clone + Eq + Uniplate + 'static,
@@ -54,6 +55,7 @@ where
     }
 }
 
+/// `Uniplate` for type `T` operates over all values of type `T` within `T`.
 pub trait Uniplate
 where
     Self: Sized + Clone + Eq + 'static,

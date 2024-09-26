@@ -1,4 +1,4 @@
-//! Implementations of Uniplate and Biplate for common types
+//! Implementations of Uniplate and Biplate for common types.
 //!
 //! This includes stdlib types as well as common collections
 //!
@@ -11,10 +11,10 @@
 use im::Vector;
 use std::collections::VecDeque;
 
-use crate::{Uniplate,Biplate};
 use crate::derive_iter;
 use crate::derive_unplateable;
 use crate::Tree::*;
+use crate::{Biplate, Uniplate};
 
 derive_unplateable!(i8);
 derive_unplateable!(i16);
