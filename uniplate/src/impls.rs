@@ -11,7 +11,7 @@
 use im::Vector;
 use std::collections::VecDeque;
 
-use crate::biplate::*;
+use crate::{Uniplate,Biplate};
 use crate::derive_iter;
 use crate::derive_unplateable;
 use crate::Tree::*;

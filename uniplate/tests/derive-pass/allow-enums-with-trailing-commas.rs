@@ -1,4 +1,4 @@
-use uniplate::Uniplate;
+use uniplate::derive::Uniplate;
 
 #[derive(PartialEq,Eq,Clone,Uniplate)]
 #[uniplate()]

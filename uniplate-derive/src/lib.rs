@@ -37,7 +37,7 @@ fn derive_a_uniplate(state: &mut ParserState) -> TokenStream2 {
     };
 
     quote! {
-        impl ::uniplate::biplate::Uniplate for #from {
+        impl ::uniplate::Uniplate for #from {
             fn uniplate(&self) -> (::uniplate::Tree<#from>, Box<dyn Fn(::uniplate::Tree<#from>) -> #from>) {
                 #tokens
             }
@@ -113,13 +113,13 @@ fn _derive_for_field(
             ast::Type::BoxedPlateable(x) => {
                 let from_t = x.inner_typ.to_token_stream();
                 quote! {
-                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::biplate::Biplate<#to_t>>::biplate(#ident.borrow());
+                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(#ident.borrow());
                 }
             }
             ast::Type::Plateable(x) => {
                 let from_t = x.to_token_stream();
                 quote! {
-                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::biplate::Biplate<#to_t>>::biplate(#ident);
+                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(#ident);
                 }
             }
             ast::Type::Unplateable => {
@@ -229,7 +229,7 @@ fn derive_a_biplate(state: &mut ParserState) -> TokenStream2 {
     };
 
     quote! {
-        impl ::uniplate::biplate::Biplate<#to> for #from {
+        impl ::uniplate::Biplate<#to> for #from {
             fn biplate(&self) -> (::uniplate::Tree<#to>, Box<dyn Fn(::uniplate::Tree<#to>) -> #from>) {
                 #tokens
             }
@@ -239,7 +239,7 @@ fn derive_a_biplate(state: &mut ParserState) -> TokenStream2 {
 
 fn _derive_identity_biplate(typ: TokenStream2) -> TokenStream2 {
     quote! {
-        impl ::uniplate::biplate::Biplate<#typ> for #typ{
+        impl ::uniplate::Biplate<#typ> for #typ{
             fn biplate(&self) -> (::uniplate::Tree<#typ>, Box<dyn Fn(::uniplate::Tree<#typ>) -> #typ>) {
                 let val = self.clone();
                 (::uniplate::Tree::One(val.clone()),Box::new(move |x| {

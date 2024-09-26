@@ -5,7 +5,6 @@
 use std::sync::Arc;
 
 pub use super::Tree;
-use im;
 use im::vector;
 
 pub trait Biplate<To>
