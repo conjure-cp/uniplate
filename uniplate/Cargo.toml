@@ -1,23 +1,26 @@
 [package]
 name = "uniplate"
 version = "0.1.1"
-authors = ["Niklas Dewally <niklas@dewally.com>","Ozgur Akgun"]
+authors = [
+    "Niklas Dewally <niklas@dewally.com>",
+    "Özgür Akgün <ozgurakgun@gmail.com>",
+]
 edition = "2021"
 description = "Simple, boilerplate-free operations on tree-shaped data types"
 readme = "../README.md" # use base repository's readme.
 repository = "https://github.com/conjure-cp/uniplate"
 license = "MPL-2.0"
 keywords = ["macro"]
-categories = ["rust-patterns","data-structures","algorithms","parsing"]
+categories = ["rust-patterns", "data-structures", "algorithms", "parsing"]
 
 [lib]
 
 [dependencies]
-im = {version = "15.1.0", features = ["proptest"]}
+im = { version = "15.1.0", features = ["proptest"] }
 proptest = "1.5.0"
 proptest-derive = "0.5.0"
 thiserror = "1.0.61"
-uniplate-derive = {version = "0.1.1", path = "../uniplate-derive"}
+uniplate-derive = { version = "0.1.1", path = "../uniplate-derive" }
 
 [dev-dependencies]
 trybuild = "1.0.91"
@@ -27,5 +30,3 @@ trybuild = "1.0.91"
 
 [features]
 unstable = []
-
-

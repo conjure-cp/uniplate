@@ -1,6 +1,10 @@
 [package]
 name = "uniplate-derive"
 version = "0.1.1"
+authors = [
+    "Niklas Dewally <niklas@dewally.com>",
+    "Özgür Akgün <ozgurakgun@gmail.com>",
+]
 edition = "2021"
 description = "Helper crate for uniplate"
 readme = "README.md"
@@ -12,7 +16,14 @@ proc-macro = true
 
 [dependencies]
 proc-macro2 = "1.0.86"
-syn = { version = "2.0.65", features = ["derive","parsing","printing","clone-impls","proc-macro","extra-traits"] }
+syn = { version = "2.0.65", features = [
+    "derive",
+    "parsing",
+    "printing",
+    "clone-impls",
+    "proc-macro",
+    "extra-traits",
+] }
 quote = "1.0.36"
 log = "0.4.22"
 itertools = "0.12.1"
