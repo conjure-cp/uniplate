@@ -1,6 +1,6 @@
 [workspace]
-resolver="2"
-members=["uniplate-derive","uniplate"]
+resolver = "2"
+members = ["uniplate-derive", "uniplate"]
 
 [profile.test.package.proptest]
 opt-level = 3
