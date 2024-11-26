@@ -1,0 +1,38 @@
+name: "Builds without any warnings"
+
+on:
+  push:
+    branches:
+      - main # run for pushes to the main branch. other branches need to create a PR if they want testing.
+    paths:
+      - uniplate/**
+      - uniplate-derive/**
+      - .github/workflows/warnings.yaml
+  pull_request:
+    paths:
+      - uniplate/**
+      - uniplate-derive/**
+      - .github/workflows/warnings.yaml
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: "Build and Test"
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        rust_release:
+          - stable
+        os:
+          - ubuntu-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: rustup update ${{ matrix.rust_release }} && rustup default ${{ matrix.rust_release }}
+      
+      - run: RUSTFLAGS="-D warnings" cargo build -vv --workspace
+      - run: RUSTFLAGS="-D warnings" cargo test --workspace
