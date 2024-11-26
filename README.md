@@ -9,8 +9,8 @@ It is a port of the Haskell library [Uniplate](https://hackage.haskell.org/packa
 
 Quick links:
 
-* [Installing Uniplate from crates.io](https://crates.io/crates/uniplate/0.1.3)
-* [Documentation (docs.rs)](https://docs.rs/uniplate/0.1.3)
+* [Installing Uniplate from crates.io](https://crates.io/crates/uniplate/0.1.4)
+* [Documentation (docs.rs)](https://docs.rs/uniplate/0.1.4)
 * [Github Repository](https://github.com/conjure-cp/uniplate)
 
 ## A simple example
