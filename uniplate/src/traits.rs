@@ -18,6 +18,27 @@ where
     /// If from == to then this function should return the root as the single child.
     fn biplate(&self) -> (Tree<To>, Box<dyn Fn(Tree<To>) -> Self>);
 
+    /// Reconstructs the node with the given children.
+    ///
+    /// # Panics
+    ///
+    /// If there are a different number of children given as there were originally returned by
+    /// children().
+    fn with_children_bi(&self, children: im::Vector<To>) -> Self {
+        // 1. Turn old tree into list.
+        // 2. Check lists are same size.
+        // 3. Use the reconstruction function given by old_children.list() to
+        //   create a tree with the same structure but the new lists' elements .
+
+        let (old_children, ctx) = self.biplate();
+        let (old_children_lst, rebuild) = old_children.list();
+        if old_children_lst.len() != children.len() {
+            panic!("with_children() given an unexpected amount of children");
+        } else {
+            ctx(rebuild(children))
+        }
+    }
+
     /// Like descend but with more general types.
     ///
     /// If from == to then this function does not descend. Therefore, when writing definitions it
