@@ -40,4 +40,14 @@ pub fn main() {
     assert_eq!(strings_in_stmt_1.len(), 2);
     assert!(strings_in_stmt_1.contains(&"x".into()));
     assert!(strings_in_stmt_1.contains(&"y".into()));
+
+    // same type property
+    let children = <Stmt as Biplate<Stmt>>::children_bi(&stmt_1);
+    assert_eq!(children.len(),1);
+    assert_eq!(children[0],stmt_1);
+
+    // test with_children_bi
+    let children = <Stmt as Biplate<String>>::children_bi(&stmt_1);
+    let reconstructed = <Stmt as Biplate<String>>::with_children_bi(&stmt_1,children);
+    assert_eq!(reconstructed,stmt_1);
 }
