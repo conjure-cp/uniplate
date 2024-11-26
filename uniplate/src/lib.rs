@@ -78,8 +78,7 @@ macro_rules! derive_iter {
                     return (::uniplate::Tree::Zero, Box::new(move |_| val.clone()));
                 }
 
-                // this is an example of the special biplate case discussed in the paper.
-                // T == F: return all types F in the Vector.
+                // T == F: return all types F in the iterator.
                 if std::any::TypeId::of::<T>() == std::any::TypeId::of::<F>() {
                     unsafe {
                         // need to cast from F to T
@@ -108,6 +107,28 @@ macro_rules! derive_iter {
                                         x
                                     })
                                     .collect()
+                            });
+
+                        return (children, ctx);
+                    }
+                }
+                // Identity / same type case: Biplate<Iter<T>> for Iter<T>
+                else if std::any::TypeId::of::<T>() == std::any::TypeId::of::<$iter_ty<F>>() {
+                    unsafe {
+                        // need to cast from Iter<F> to T
+                        let val: T = std::mem::transmute::<&$iter_ty<F>, &T>(&self).clone();
+
+                        let children: ::uniplate::Tree<T> = ::uniplate::Tree::One(val);
+
+                        let ctx: Box<dyn Fn(::uniplate::Tree<T>) -> $iter_ty<F>> =
+                            Box::new(move |new_tree: ::uniplate::Tree<T>| {
+                                let ::uniplate::Tree::One(x) = new_tree else {
+                                    todo!();
+                                };
+                                // need to cast from T to Iter<F>
+                                let val: $iter_ty<F> =
+                                    std::mem::transmute::<&T, &$iter_ty<F>>(&x).clone();
+                                val
                             });
 
                         return (children, ctx);
