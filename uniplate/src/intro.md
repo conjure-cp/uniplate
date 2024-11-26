@@ -1,7 +1,7 @@
 **Uniplate helps you write simple, boilerplate-free operations on tree shaped data types.**
 
 - A port of Haskell's [Uniplate](https://hackage.haskell.org/package/uniplate)
-library in Rust.
+  library in Rust.
 
 # Getting Started 
 
@@ -191,9 +191,9 @@ The techniques implemented in this crate originate from the following:
 * [The Uniplate Haskell Library](https://hackage.haskell.org/package/uniplate).
 
 * Neil Mitchell and Colin Runciman. 2007. Uniform boilerplate and list processing. In
-Proceedings of the ACM SIGPLAN workshop on Haskell workshop (Haskell '07). Association for
-Computing Machinery, New York, NY, USA, 49–60. <https://doi.org/10.1145/1291201.1291208>
-[(free copy)](https://www.cs.york.ac.uk/plasma/publications/pdf/MitchellRuncimanHW07.pdf)
+  Proceedings of the ACM SIGPLAN workshop on Haskell workshop (Haskell '07). Association for
+  Computing Machinery, New York, NY, USA, 49–60. <https://doi.org/10.1145/1291201.1291208>
+  [(free copy)](https://www.cs.york.ac.uk/plasma/publications/pdf/MitchellRuncimanHW07.pdf)
 
 * Huet G. The Zipper. Journal of Functional Programming. 1997;7(5):549–54. <https://doi.org/10.1017/S0956796897002864>
-[(free copy)](https://www.cambridge.org/core/services/aop-cambridge-core/content/view/0C058890B8A9B588F26E6D68CF0CE204/S0956796897002864a.pdf/zipper.pdf)
+  [(free copy)](https://www.cambridge.org/core/services/aop-cambridge-core/content/view/0C058890B8A9B588F26E6D68CF0CE204/S0956796897002864a.pdf/zipper.pdf)

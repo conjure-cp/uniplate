@@ -62,9 +62,7 @@ impl ParserState {
             None => None,
         };
 
-        if self.current_instance.is_none() {
-            return None;
-        };
+        self.current_instance.as_ref()?;
 
         Some(())
     }
