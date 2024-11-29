@@ -164,4 +164,92 @@ where
             children.into_iter().map(|c| c.cata(op.clone())).collect(),
         )
     }
+
+    /// Returns an iterator over all direct children of the input, paired with a function that
+    /// "fills the hole" where the child was with a new value.
+    fn holes(&self) -> impl Iterator<Item = (Self, Arc<dyn Fn(Self) -> Self>)> {
+        // must be an iterator as we cannot clone Box<dyn Fn()>'s, so cannot stick them in
+        // vectors, etc
+
+        HolesIterator::new(self.clone())
+    }
+
+    /// The `universe()` equivalent for `holes`.
+    fn contexts(&self) -> impl Iterator<Item = (Self, Arc<dyn Fn(Self) -> Self>)> {
+        // from the Haskell: https://github.com/ndmitchell/uniplate/blob/master/Data/Generics/Uniplate/Internal/OperationsInc.hs
+
+        let myself_ctx: Arc<dyn Fn(Self) -> Self> = Arc::new(|x: Self| x);
+        let myself_iter: Box<dyn Iterator<Item = (Self, Arc<dyn Fn(Self) -> Self>)>> =
+            Box::new(std::iter::once((self.clone(), myself_ctx)));
+
+        let mut my_iter: Box<dyn Iterator<Item = (Self, Arc<dyn Fn(Self) -> Self>)>> =
+            Box::new(myself_iter);
+
+        for (child, hole) in self.holes() {
+            for (y, context) in child.contexts() {
+                let hole2 = hole.clone();
+                let new_ctx: Arc<dyn Fn(Self) -> Self> = Arc::new(move |x| hole2(context(x)));
+
+                my_iter = Box::new(my_iter.chain(std::iter::once((y, new_ctx))));
+            }
+        }
+        my_iter
+    }
+}
+
+struct HolesIterator<T: Uniplate> {
+    children_iter: std::iter::Enumerate<im::vector::ConsumingIter<T>>,
+    children: im::vector::Vector<T>,
+    parent: T,
+}
+
+impl<T: Uniplate> Iterator for HolesIterator<T> {
+    type Item = (T, Arc<dyn Fn(T) -> T>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (i, child) = self.children_iter.next()?;
+
+        let children2 = self.children.clone();
+        let parent2 = self.parent.clone();
+        let hole = Arc::new(move |x: T| {
+            let mut children = children2.clone();
+            children[i] = x;
+            parent2.with_children(children)
+        });
+
+        Some((child.clone(), hole))
+    }
+}
+
+impl<T: Uniplate> HolesIterator<T> {
+    fn new(parent: T) -> HolesIterator<T> {
+        let children = parent.children();
+        let children_iter = children.clone().into_iter().enumerate();
+
+        HolesIterator {
+            children_iter,
+            children,
+            parent,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use proptest::prelude::*;
+
+    use crate::test_common::paper::proptest_stmts;
+
+    use super::*;
+    proptest! {
+        #[test]
+        fn test_context_same_as_universe(ast in proptest_stmts()) {
+            prop_assert_eq!(ast.universe(),ast.contexts().map(|(elem,_)| elem).collect());
+        }
+
+        #[test]
+        fn test_holes_same_as_children(ast in proptest_stmts()) {
+            prop_assert_eq!(ast.children(),ast.holes().map(|(elem,_)| elem).collect());
+        }
+    }
 }
