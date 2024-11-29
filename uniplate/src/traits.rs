@@ -74,6 +74,32 @@ where
         let (children, ctx) = self.biplate();
         ctx(children.map(Arc::new(move |child| child.transform(op.clone()))))
     }
+
+    /// Returns an iterator over all direct children of the input, paired with a function that
+    /// "fills the hole" where the child was with a new value.
+    fn holes_bi(&self) -> impl Iterator<Item = (To, Arc<dyn Fn(To) -> Self>)> {
+        // must be an iterator as we cannot clone Box<dyn Fn()>'s, so cannot stick them in
+        // vectors, etc
+        HolesBiIterator::new(self.clone())
+    }
+
+    /// `holes_bi`, but for `universe()`
+    fn contexts_bi(&self) -> impl Iterator<Item = (To, Arc<dyn Fn(To) -> Self>)> {
+        // from the Haskell: https://github.com/ndmitchell/uniplate/blob/master/Data/Generics/Uniplate/Internal/OperationsInc.hs
+
+        let mut my_iter: Box<dyn Iterator<Item = (To, Arc<dyn Fn(To) -> Self>)>> =
+            Box::new(std::iter::empty());
+
+        for (child, hole) in self.holes_bi() {
+            for (y, context) in child.contexts() {
+                let hole2 = hole.clone();
+                let new_ctx: Arc<dyn Fn(To) -> Self> = Arc::new(move |x| hole2(context(x)));
+
+                my_iter = Box::new(my_iter.chain(std::iter::once((y, new_ctx))));
+            }
+        }
+        my_iter
+    }
 }
 
 /// `Uniplate` for type `T` operates over all values of type `T` within `T`.
@@ -234,11 +260,48 @@ impl<T: Uniplate> HolesIterator<T> {
     }
 }
 
+struct HolesBiIterator<T: Uniplate, F: Biplate<T>> {
+    children_iter: std::iter::Enumerate<im::vector::ConsumingIter<T>>,
+    children: im::vector::Vector<T>,
+    parent: F,
+}
+
+impl<T: Uniplate, F: Biplate<T>> Iterator for HolesBiIterator<T, F> {
+    type Item = (T, Arc<dyn Fn(T) -> F>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (i, child) = self.children_iter.next()?;
+
+        let children2 = self.children.clone();
+        let parent2 = self.parent.clone();
+        let hole = Arc::new(move |x: T| {
+            let mut children = children2.clone();
+            children[i] = x;
+            parent2.with_children_bi(children)
+        });
+
+        Some((child.clone(), hole))
+    }
+}
+
+impl<T: Uniplate, F: Biplate<T>> HolesBiIterator<T, F> {
+    fn new(parent: F) -> HolesBiIterator<T, F> {
+        let children = parent.children_bi();
+        let children_iter = children.clone().into_iter().enumerate();
+
+        HolesBiIterator {
+            children_iter,
+            children,
+            parent,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use proptest::prelude::*;
 
-    use crate::test_common::paper::proptest_stmts;
+    use crate::test_common::paper::{proptest_stmts, Expr, Stmt};
 
     use super::*;
     proptest! {
@@ -250,6 +313,18 @@ mod tests {
         #[test]
         fn test_holes_same_as_children(ast in proptest_stmts()) {
             prop_assert_eq!(ast.children(),ast.holes().map(|(elem,_)| elem).collect());
+        }
+
+        #[test]
+        fn test_context_bi_same_as_universe_bi(ast in proptest_stmts()) {
+            prop_assert_eq!(Biplate::<Expr>::universe_bi(&ast),Biplate::<Expr>::contexts_bi(&ast).map(|(elem,_)| elem).collect());
+            prop_assert_eq!(Biplate::<Stmt>::universe_bi(&ast),Biplate::<Stmt>::contexts_bi(&ast).map(|(elem,_)| elem).collect());
+        }
+
+        #[test]
+        fn test_holes_bi_same_as_children_bi(ast in proptest_stmts()) {
+            prop_assert_eq!(Biplate::<Expr>::children_bi(&ast),Biplate::<Expr>::holes_bi(&ast).map(|(elem,_)| elem).collect());
+            prop_assert_eq!(Biplate::<Stmt>::children_bi(&ast),Biplate::<Stmt>::holes_bi(&ast).map(|(elem,_)| elem).collect());
         }
     }
 }
