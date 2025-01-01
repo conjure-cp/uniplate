@@ -16,7 +16,7 @@ proc-macro = true
 
 [dependencies]
 proc-macro2 = "1.0.89"
-syn = { version = "2.0.90", features = [
+syn = { version = "2.0.93", features = [
     "derive",
     "parsing",
     "printing",
@@ -24,9 +24,9 @@ syn = { version = "2.0.90", features = [
     "proc-macro",
     "extra-traits",
 ] }
-quote = "1.0.36"
+quote = "1.0.38"
 log = "0.4.22"
-itertools = "0.13.0"
+itertools = "0.14.0"
 lazy_static = "1.4.0"
 
 [lints.rust]

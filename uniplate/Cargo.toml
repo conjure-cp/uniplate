@@ -17,9 +17,9 @@ categories = ["rust-patterns", "data-structures", "algorithms"]
 
 [dependencies]
 im = { version = "15.1.0", features = ["proptest"] }
-proptest = "1.5.0"
-proptest-derive = "0.5.0"
-thiserror = "2.0.3"
+proptest = "1.6.0"
+proptest-derive = "0.5.1"
+thiserror = "2.0.9"
 uniplate-derive = { version = "0.1.5", path = "../uniplate-derive" }
 
 [dev-dependencies]
