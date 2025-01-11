@@ -25,7 +25,49 @@ pub mod _dependencies {
     pub use im;
 }
 
-/// Generates a Biplate and Uniplate instance for an unplateable type.
+/// Generates [`Biplate`] and [`Uniplate`] instances for an unplateable type.
+///
+/// An unplateable type is one that you don't want Uniplate to traverse inside of.
+///
+/// The type must implement `Clone` and `Eq`.
+///
+/// Consider marking a type unplateable if it has no children (e.g. `String`) or does not support
+/// the derive macro, but you still need a `Uniplate` or `Biplate` implementation for it.
+///
+/// # Example
+///
+/// For example, the target of a `Biplate` operation must implement `Uniplate`.
+///
+/// The below example uses `Biplate` to get all the `Names` in a binary tree.
+///
+/// ```
+/// use uniplate::{derive_unplateable,Uniplate,Biplate,derive::Uniplate};
+///
+/// // The derive macro does not support structs yet
+/// #[derive(Clone,PartialEq,Eq)]
+/// struct Name {
+///   first: String,
+///   last: String
+/// }
+///
+/// // ..so use derive_unplateable instead, as we don't care about the children.
+/// derive_unplateable!(Name);
+///
+///
+/// #[derive(Clone,PartialEq,Eq,Uniplate)]
+/// #[uniplate()]
+/// #[biplate(to=Name)]
+/// enum MyTree {
+///   Leaf(Name),
+///   Branch(Name,Box<MyTree>,Box<MyTree>)
+/// }
+///
+/// /// Gets all the names in the tree
+/// fn names_in_tree(tree: &MyTree) -> Vec<Name> {
+///     let names: Vec<Name> = tree.universe_bi().into_iter().collect();
+///     names
+/// }
+/// ```
 #[macro_export]
 macro_rules! derive_unplateable {
     ($t:ty) => {
@@ -58,7 +100,10 @@ macro_rules! derive_unplateable {
     };
 }
 
-/// Generates a Biplate and Uniplate instance for an iterable type.
+/// Generates [`Biplate`] and [`Uniplate`] instances for a collection using its [`Iterator`]
+/// implementation.
+///
+/// Children will be visited in the order returned by `.iter()`.
 #[macro_export]
 macro_rules! derive_iter {
     ($iter_ty:ident) => {
