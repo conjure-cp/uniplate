@@ -29,7 +29,7 @@ pub mod _dependencies {
 #[macro_export]
 macro_rules! derive_unplateable {
     ($t:ty) => {
-        impl Uniplate for $t {
+        impl ::uniplate::Uniplate for $t {
             fn uniplate(
                 &self,
             ) -> (
@@ -41,7 +41,7 @@ macro_rules! derive_unplateable {
             }
         }
 
-        impl Biplate<$t> for $t {
+        impl ::uniplate::Biplate<$t> for $t {
             fn biplate(
                 &self,
             ) -> (
@@ -62,10 +62,10 @@ macro_rules! derive_unplateable {
 #[macro_export]
 macro_rules! derive_iter {
     ($iter_ty:ident) => {
-        impl<T, F> Biplate<T> for $iter_ty<F>
+        impl<T, F> ::uniplate::Biplate<T> for $iter_ty<F>
         where
-            T: Clone + Eq + Uniplate + Sized + 'static,
-            F: Clone + Eq + Uniplate + Biplate<T> + Sized + 'static,
+            T: Clone + Eq + ::uniplate::Uniplate + Sized + 'static,
+            F: Clone + Eq + ::uniplate::Uniplate + ::uniplate::Biplate<T> + Sized + 'static,
         {
             fn biplate(
                 &self,
@@ -139,7 +139,7 @@ macro_rules! derive_iter {
                 let mut child_trees: im::Vector<::uniplate::Tree<T>> = im::Vector::new();
                 let mut child_ctxs: Vec<Box<dyn Fn(::uniplate::Tree<T>) -> F>> = Vec::new();
                 for item in self {
-                    let (tree, plate) = <F as Biplate<T>>::biplate(item);
+                    let (tree, plate) = <F as ::uniplate::Biplate<T>>::biplate(item);
                     child_trees.push_back(tree);
                     child_ctxs.push(plate);
                 }
@@ -160,9 +160,9 @@ macro_rules! derive_iter {
         }
 
         // Traversal Biplate
-        impl<T> Uniplate for $iter_ty<T>
+        impl<T> ::uniplate::Uniplate for $iter_ty<T>
         where
-            T: Clone + Eq + Uniplate + Sized + 'static,
+            T: Clone + Eq + ::uniplate::Uniplate + Sized + 'static,
         {
             fn uniplate(
                 &self,

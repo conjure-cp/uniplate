@@ -14,7 +14,6 @@ use std::collections::VecDeque;
 use crate::derive_iter;
 use crate::derive_unplateable;
 use crate::Tree::*;
-use crate::{Biplate, Uniplate};
 
 derive_unplateable!(i8);
 derive_unplateable!(i16);
