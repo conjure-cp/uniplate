@@ -19,6 +19,11 @@ pub mod test_common;
 
 /// The derive macro.
 pub mod derive {
+    /// The Uniplate derive macro.
+    ///
+    /// Currently this only supports `enums`.
+    ///
+    /// **See the top level crate documentation for usage details.**
     pub use uniplate_derive::Uniplate;
 }
 
