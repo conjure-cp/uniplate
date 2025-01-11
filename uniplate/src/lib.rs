@@ -3,7 +3,9 @@
 #[doc(hidden)]
 extern crate self as uniplate;
 
+#[doc(hidden)]
 pub mod impls;
+
 mod traits;
 mod tree;
 
