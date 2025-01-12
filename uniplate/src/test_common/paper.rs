@@ -1,9 +1,5 @@
 use crate::derive::Uniplate;
 
-#[cfg(test)]
-use crate::Uniplate;
-use proptest::prelude::*;
-
 // Examples found in the Uniplate paper.
 
 // Stmt and Expr to demonstrate and test multitype traversals.
@@ -32,62 +28,72 @@ pub enum Expr {
     Neg(Box<Expr>),
 }
 
-use self::Expr::*;
-use self::Stmt::*;
-pub fn proptest_exprs() -> impl Strategy<Value = Expr> {
-    let leafs = prop_oneof![any::<i32>().prop_map(Val), "[a-z]*".prop_map(Var),];
+#[cfg(test)]
+pub use proptest::*;
 
-    leafs.prop_recursive(8, 256, 10, |inner| {
-        prop_oneof![
-            prop::collection::vec(inner.clone(), 2..3)
-                .prop_map(|elems| Add(Box::new(elems[0].clone()), Box::new(elems[1].clone()))),
-            prop::collection::vec(inner.clone(), 2..3)
-                .prop_map(|elems| Sub(Box::new(elems[0].clone()), Box::new(elems[1].clone()))),
-            prop::collection::vec(inner.clone(), 2..3)
-                .prop_map(|elems| Mul(Box::new(elems[0].clone()), Box::new(elems[1].clone()))),
-            prop::collection::vec(inner.clone(), 2..3)
-                .prop_map(|elems| Div(Box::new(elems[0].clone()), Box::new(elems[1].clone()))),
-            inner.prop_map(|inner| Neg(Box::new(inner.clone())))
-        ]
-    })
-}
+#[cfg(test)]
+mod proptest {
+    use super::Expr;
+    use super::Expr::*;
+    use super::Stmt;
+    use super::Stmt::*;
+    use crate::Uniplate;
+    use proptest::prelude::*;
+    pub fn proptest_exprs() -> impl Strategy<Value = Expr> {
+        let leafs = prop_oneof![any::<i32>().prop_map(Val), "[a-z]*".prop_map(Var),];
 
-pub fn proptest_stmts() -> impl Strategy<Value = Stmt> {
-    let leafs = prop_oneof![("[a-z]*", proptest_exprs()).prop_map(|(a, b)| Assign(a, b)),];
+        leafs.prop_recursive(8, 256, 10, |inner| {
+            prop_oneof![
+                prop::collection::vec(inner.clone(), 2..3)
+                    .prop_map(|elems| Add(Box::new(elems[0].clone()), Box::new(elems[1].clone()))),
+                prop::collection::vec(inner.clone(), 2..3)
+                    .prop_map(|elems| Sub(Box::new(elems[0].clone()), Box::new(elems[1].clone()))),
+                prop::collection::vec(inner.clone(), 2..3)
+                    .prop_map(|elems| Mul(Box::new(elems[0].clone()), Box::new(elems[1].clone()))),
+                prop::collection::vec(inner.clone(), 2..3)
+                    .prop_map(|elems| Div(Box::new(elems[0].clone()), Box::new(elems[1].clone()))),
+                inner.prop_map(|inner| Neg(Box::new(inner.clone())))
+            ]
+        })
+    }
 
-    leafs.prop_recursive(8, 256, 10, |inner| {
-        prop_oneof![
-            (proptest_exprs(), prop::collection::vec(inner.clone(), 2..4)).prop_map(
-                move |(expr, stmts)| If(
-                    expr,
-                    Box::new(stmts[0].clone()),
-                    Box::new(stmts[1].clone())
-                )
-            ),
-            (proptest_exprs(), inner.clone())
-                .prop_map(move |(expr, stmt)| While(expr, Box::new(stmt))),
-            prop::collection::vec(inner.clone(), 0..10).prop_map(Sequence)
-        ]
-    })
-}
+    pub fn proptest_stmts() -> impl Strategy<Value = Stmt> {
+        let leafs = prop_oneof![("[a-z]*", proptest_exprs()).prop_map(|(a, b)| Assign(a, b)),];
 
-proptest! {
+        leafs.prop_recursive(8, 256, 10, |inner| {
+            prop_oneof![
+                (proptest_exprs(), prop::collection::vec(inner.clone(), 2..4)).prop_map(
+                    move |(expr, stmts)| If(
+                        expr,
+                        Box::new(stmts[0].clone()),
+                        Box::new(stmts[1].clone())
+                    )
+                ),
+                (proptest_exprs(), inner.clone())
+                    .prop_map(move |(expr, stmt)| While(expr, Box::new(stmt))),
+                prop::collection::vec(inner.clone(), 0..10).prop_map(Sequence)
+            ]
+        })
+    }
 
-#![proptest_config(ProptestConfig { max_shrink_iters:1000000, max_global_rejects:100000,cases:50,..Default::default()})]
+    proptest! {
 
-#[test]
-fn uniplate_children(ast in proptest_stmts(), new_children in proptest::collection::vec(proptest_stmts(),1..=10)) {
-    use std::collections::VecDeque;
-    let original_children = ast.children();
-    prop_assume!(original_children.len() == new_children.len());
+    #![proptest_config(ProptestConfig { max_shrink_iters:1000000, max_global_rejects:100000,cases:50,..Default::default()})]
 
-    let mut ast = ast.with_children(new_children.clone().into());
+    #[test]
+    fn uniplate_children(ast in proptest_stmts(), new_children in proptest::collection::vec(proptest_stmts(),1..=10)) {
+        use std::collections::VecDeque;
+        let original_children = ast.children();
+        prop_assume!(original_children.len() == new_children.len());
 
-    prop_assert_eq!(VecDeque::<Stmt>::from(new_children),ast.children());
+        let mut ast = ast.with_children(new_children.clone().into());
 
-    ast = ast.with_children(original_children.clone());
-    prop_assert_eq!(original_children,ast.children());
+        prop_assert_eq!(VecDeque::<Stmt>::from(new_children),ast.children());
 
-}
+        ast = ast.with_children(original_children.clone());
+        prop_assert_eq!(original_children,ast.children());
 
+    }
+
+    }
 }
