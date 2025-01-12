@@ -2,10 +2,9 @@
 
 #![allow(clippy::type_complexity)]
 
-use std::sync::Arc;
+use std::{collections::VecDeque, sync::Arc};
 
 pub use super::Tree;
-use im::vector;
 
 /// `Biplate<U>` for type `T` operates over all values of type `U` within `T`.
 pub trait Biplate<To>
@@ -24,7 +23,7 @@ where
     ///
     /// If there are a different number of children given as there were originally returned by
     /// children().
-    fn with_children_bi(&self, children: im::Vector<To>) -> Self {
+    fn with_children_bi(&self, children: VecDeque<To>) -> Self {
         // 1. Turn old tree into list.
         // 2. Check lists are same size.
         // 3. Use the reconstruction function given by old_children.list() to
@@ -45,7 +44,6 @@ where
     /// is highly unlikely that this function should be used in the recursive case. A common
     /// pattern is to first match the types using descendBi, then continue the recursion with
     /// descend.
-
     fn descend_bi(&self, op: Arc<dyn Fn(To) -> To>) -> Self {
         let (children, ctx) = self.biplate();
         ctx(children.map(op))
@@ -58,7 +56,7 @@ where
     //
     // https://github.com/ndmitchell/uniplate/blob/66a2c55a7de0f5d8b0e437479719469244e00fa4/Data/Generics/Uniplate/Internal/OperationsInc.hs#L189
 
-    fn universe_bi(&self) -> im::Vector<To> {
+    fn universe_bi(&self) -> VecDeque<To> {
         self.children_bi()
             .into_iter()
             .flat_map(|child| child.universe())
@@ -66,7 +64,7 @@ where
     }
 
     /// Returns the children of a type. If to == from then it returns the original element (in contrast to children).
-    fn children_bi(&self) -> im::Vector<To> {
+    fn children_bi(&self) -> VecDeque<To> {
         self.biplate().0.list().0
     }
 
@@ -115,16 +113,16 @@ where
     }
 
     /// Gets all children of a node, including itself and all children.
-    fn universe(&self) -> im::Vector<Self> {
-        let mut results = vector![self.clone()];
+    fn universe(&self) -> VecDeque<Self> {
+        let mut results = VecDeque::from([self.clone()]);
         for child in self.children() {
-            results.append(child.universe());
+            results.append(&mut child.universe());
         }
         results
     }
 
     /// Gets the direct children (maximal substructures) of a node.
-    fn children(&self) -> im::Vector<Self> {
+    fn children(&self) -> VecDeque<Self> {
         let (children, _) = self.uniplate();
         children.list().0.clone()
     }
@@ -135,7 +133,7 @@ where
     ///
     /// If there are a different number of children given as there were originally returned by
     /// children().
-    fn with_children(&self, children: im::Vector<Self>) -> Self {
+    fn with_children(&self, children: VecDeque<Self>) -> Self {
         // 1. Turn old tree into list.
         // 2. Check lists are same size.
         // 3. Use the reconstruction function given by old_children.list() to
@@ -183,7 +181,7 @@ where
     /// The meaning of the callback function is the following:
     ///
     ///   f(element_to_fold, folded_children) -> folded_element
-    fn cata<T>(&self, op: Arc<dyn Fn(Self, Vec<T>) -> T>) -> T {
+    fn cata<T>(&self, op: Arc<dyn Fn(Self, VecDeque<T>) -> T>) -> T {
         let children = self.children();
         (*op)(
             self.clone(),
@@ -224,8 +222,8 @@ where
 }
 
 struct HolesIterator<T: Uniplate> {
-    children_iter: std::iter::Enumerate<im::vector::ConsumingIter<T>>,
-    children: im::vector::Vector<T>,
+    children_iter: std::iter::Enumerate<std::collections::vec_deque::IntoIter<T>>,
+    children: VecDeque<T>,
     parent: T,
 }
 
@@ -261,8 +259,8 @@ impl<T: Uniplate> HolesIterator<T> {
 }
 
 struct HolesBiIterator<T: Uniplate, F: Biplate<T>> {
-    children_iter: std::iter::Enumerate<im::vector::ConsumingIter<T>>,
-    children: im::vector::Vector<T>,
+    children_iter: std::iter::Enumerate<std::collections::vec_deque::IntoIter<T>>,
+    children: VecDeque<T>,
     parent: F,
 }
 
@@ -307,24 +305,24 @@ mod tests {
     proptest! {
         #[test]
         fn test_context_same_as_universe(ast in proptest_stmts()) {
-            prop_assert_eq!(ast.universe(),ast.contexts().map(|(elem,_)| elem).collect());
+            prop_assert_eq!(ast.universe(),ast.contexts().map(|(elem,_)| elem).collect::<VecDeque<_>>());
         }
 
         #[test]
         fn test_holes_same_as_children(ast in proptest_stmts()) {
-            prop_assert_eq!(ast.children(),ast.holes().map(|(elem,_)| elem).collect());
+            prop_assert_eq!(ast.children(),ast.holes().map(|(elem,_)| elem).collect::<VecDeque<_>>());
         }
 
         #[test]
         fn test_context_bi_same_as_universe_bi(ast in proptest_stmts()) {
-            prop_assert_eq!(Biplate::<Expr>::universe_bi(&ast),Biplate::<Expr>::contexts_bi(&ast).map(|(elem,_)| elem).collect());
-            prop_assert_eq!(Biplate::<Stmt>::universe_bi(&ast),Biplate::<Stmt>::contexts_bi(&ast).map(|(elem,_)| elem).collect());
+            prop_assert_eq!(Biplate::<Expr>::universe_bi(&ast),Biplate::<Expr>::contexts_bi(&ast).map(|(elem,_)| elem).collect::<VecDeque<_>>());
+            prop_assert_eq!(Biplate::<Stmt>::universe_bi(&ast),Biplate::<Stmt>::contexts_bi(&ast).map(|(elem,_)| elem).collect::<VecDeque<_>>());
         }
 
         #[test]
         fn test_holes_bi_same_as_children_bi(ast in proptest_stmts()) {
-            prop_assert_eq!(Biplate::<Expr>::children_bi(&ast),Biplate::<Expr>::holes_bi(&ast).map(|(elem,_)| elem).collect());
-            prop_assert_eq!(Biplate::<Stmt>::children_bi(&ast),Biplate::<Stmt>::holes_bi(&ast).map(|(elem,_)| elem).collect());
+            prop_assert_eq!(Biplate::<Expr>::children_bi(&ast),Biplate::<Expr>::holes_bi(&ast).map(|(elem,_)| elem).collect::<VecDeque<_>>());
+            prop_assert_eq!(Biplate::<Stmt>::children_bi(&ast),Biplate::<Stmt>::holes_bi(&ast).map(|(elem,_)| elem).collect::<VecDeque<_>>());
         }
     }
 }

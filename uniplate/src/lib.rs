@@ -27,11 +27,6 @@ pub mod derive {
     pub use uniplate_derive::Uniplate;
 }
 
-#[doc(hidden)]
-pub mod _dependencies {
-    pub use im;
-}
-
 /// Generates [`Biplate`] and [`Uniplate`] instances for an unplateable type.
 ///
 /// An unplateable type is one that you don't want Uniplate to traverse inside of.
@@ -188,7 +183,7 @@ macro_rules! derive_iter {
                 }
 
                 // T != F: return all type T's contained in the type F's in the vector
-                let mut child_trees: im::Vector<::uniplate::Tree<T>> = im::Vector::new();
+                let mut child_trees: VecDeque<::uniplate::Tree<T>> = VecDeque::new();
                 let mut child_ctxs: Vec<Box<dyn Fn(::uniplate::Tree<T>) -> F>> = Vec::new();
                 for item in self {
                     let (tree, plate) = <F as ::uniplate::Biplate<T>>::biplate(item);
