@@ -1,4 +1,5 @@
 use crate::derive::Uniplate;
+
 #[cfg(test)]
 use crate::Uniplate;
 use proptest::prelude::*;
@@ -76,12 +77,13 @@ proptest! {
 
 #[test]
 fn uniplate_children(ast in proptest_stmts(), new_children in proptest::collection::vec(proptest_stmts(),1..=10)) {
+    use std::collections::VecDeque;
     let original_children = ast.children();
     prop_assume!(original_children.len() == new_children.len());
 
     let mut ast = ast.with_children(new_children.clone().into());
 
-    prop_assert_eq!(im::Vector::<Stmt>::from(new_children),ast.children());
+    prop_assert_eq!(VecDeque::<Stmt>::from(new_children),ast.children());
 
     ast = ast.with_children(original_children.clone());
     prop_assert_eq!(original_children,ast.children());

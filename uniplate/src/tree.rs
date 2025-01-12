@@ -1,8 +1,7 @@
 //#![cfg(feature = "unstable")]
 
-use std::sync::Arc;
+use std::{collections::VecDeque, sync::Arc};
 
-use im::vector;
 use proptest::prelude::*;
 
 use self::Tree::*;
@@ -11,7 +10,7 @@ use self::Tree::*;
 pub enum Tree<T: Sized + Clone + Eq> {
     Zero,
     One(T),
-    Many(im::Vector<Tree<T>>),
+    Many(VecDeque<Tree<T>>),
 }
 
 // NOTE (niklasdewally): This converts the entire tree into a list. Therefore this is only really
@@ -21,7 +20,7 @@ pub enum Tree<T: Sized + Clone + Eq> {
 impl<T: Sized + Clone + Eq + 'static> IntoIterator for Tree<T> {
     type Item = T;
 
-    type IntoIter = im::vector::ConsumingIter<T>;
+    type IntoIter = std::collections::vec_deque::IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.list().0.into_iter()
@@ -32,15 +31,14 @@ impl<T: Sized + Clone + Eq + 'static> Tree<T> {
     ///
     /// This preserves the structure of the tree.
     #[allow(clippy::type_complexity)]
-    pub fn list(self) -> (im::Vector<T>, Box<dyn Fn(im::Vector<T>) -> Tree<T>>) {
+    pub fn list(self) -> (VecDeque<T>, Box<dyn Fn(VecDeque<T>) -> Tree<T>>) {
         // inspired by the Uniplate Haskell equivalent Data.Generics.Str::strStructure
         // https://github.com/ndmitchell/uniplate/blob/master/Data/Generics/Str.hs#L85
 
-        fn flatten<T: Sized + Clone + Eq>(t: Tree<T>, xs: im::Vector<T>) -> im::Vector<T> {
+        fn flatten<T: Sized + Clone + Eq>(t: Tree<T>, xs: VecDeque<T>) -> VecDeque<T> {
             match (t, xs) {
                 (Zero, xs) => xs,
-                (One(x), xs) => {
-                    let mut xs1 = xs.clone();
+                (One(x), mut xs1) => {
                     xs1.push_back(x);
                     xs1
                 }
@@ -52,28 +50,26 @@ impl<T: Sized + Clone + Eq + 'static> Tree<T> {
         // We use the node types of the old tree to know what node types to use for the new tree.
         fn recons<T: Sized + Clone + Eq>(
             old_tree: Tree<T>,
-            xs: im::Vector<T>,
-        ) -> (Tree<T>, im::Vector<T>) {
+            xs: VecDeque<T>,
+        ) -> (Tree<T>, VecDeque<T>) {
             #[allow(clippy::unwrap_used)]
             match (old_tree, xs) {
                 (Zero, xs) => (Zero, xs),
-                (One(_), xs) => {
-                    let mut xs1 = xs.clone();
-                    (One(xs1.pop_front().unwrap()), xs1)
-                }
+                (One(_), mut xs1) => (One(xs1.pop_front().unwrap()), xs1),
                 (Many(ts), xs) => {
-                    let (ts1, xs1) = ts.into_iter().fold((vector![], xs), |(ts1, xs), t| {
-                        let (t1, xs1) = recons(t, xs);
-                        let mut ts2 = ts1.clone();
-                        ts2.push_back(t1);
-                        (ts2, xs1)
-                    });
+                    let (ts1, xs1) =
+                        ts.into_iter()
+                            .fold((VecDeque::new(), xs), |(mut ts1, xs), t| {
+                                let (t1, xs1) = recons(t, xs);
+                                ts1.push_back(t1);
+                                (ts1, xs1)
+                            });
                     (Many(ts1), xs1)
                 }
             }
         }
         (
-            flatten(self.clone(), vector![]),
+            flatten(self.clone(), VecDeque::new()),
             Box::new(move |xs| recons(self.clone(), xs).0),
         )
     }
@@ -88,6 +84,7 @@ impl<T: Sized + Clone + Eq + 'static> Tree<T> {
     }
 }
 
+// FIXME: move into tests module so that proptest is not a public dependency
 #[allow(dead_code)]
 // Used by proptest for generating test instances of Tree<i32>.
 fn proptest_integer_trees() -> impl Strategy<Value = Tree<i32>> {
@@ -99,7 +96,7 @@ fn proptest_integer_trees() -> impl Strategy<Value = Tree<i32>> {
         10,  // levels deep
         512, // Shoot for maximum size of 512 nodes
         20,  // We put up to 20 items per collection
-        |inner| im::proptest::vector(inner.clone(), 0..20).prop_map(Tree::Many),
+        |inner| proptest::collection::vec_deque(inner.clone(), 0..20).prop_map(Tree::Many),
     )
 }
 
@@ -131,13 +128,17 @@ mod tests {
     }
     #[test]
     fn list_preserves_ordering() {
-        let my_tree: Tree<i32> = Many(vector![
-            Many(vector![One(0), Zero]),
-            Many(vector![Many(vector![Zero, One(1), One(2)])]),
+        let my_tree: Tree<i32> = Many(VecDeque::from([
+            Many(VecDeque::from([One(0), Zero])),
+            Many(VecDeque::from([Many(VecDeque::from([
+                Zero,
+                One(1),
+                One(2),
+            ]))])),
             One(3),
             Zero,
-            One(4)
-        ]);
+            One(4),
+        ]));
 
         let flat = my_tree.list().0;
 

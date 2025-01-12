@@ -1,8 +1,7 @@
 // Expr and Stmt from the paper, manually derived.
 
+use std::collections::VecDeque;
 use std::iter::zip;
-
-use im::vector;
 //use uniplate::test_common::paper::*;
 use uniplate::{Biplate, Tree, Uniplate};
 
@@ -38,7 +37,7 @@ impl Uniplate for Expr {
                 // Field 1 - Box<Expr>
                 let (f1_tree, f1_ctx) = <Expr as Biplate<Expr>>::biplate(&*f1);
 
-                let tree = Many(vector![f0_tree, f1_tree]);
+                let tree = Many(VecDeque::from([f0_tree, f1_tree]));
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else { panic!() };
                     assert_eq!(ts.len(), 2);
@@ -57,7 +56,7 @@ impl Uniplate for Expr {
                 // Field 1 - Box<Expr>
                 let (f1_tree, f1_ctx) = <Expr as Biplate<Expr>>::biplate(&*f1);
 
-                let tree = Many(vector![f0_tree, f1_tree]);
+                let tree = Many(VecDeque::from([f0_tree, f1_tree]));
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else { panic!() };
                     assert_eq!(ts.len(), 2);
@@ -76,7 +75,7 @@ impl Uniplate for Expr {
                 // Field 1 - Box<Expr>
                 let (f1_tree, f1_ctx) = <Expr as Biplate<Expr>>::biplate(&*f1);
 
-                let tree = Many(vector![f0_tree, f1_tree]);
+                let tree = Many(VecDeque::from([f0_tree, f1_tree]));
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else { panic!() };
                     assert_eq!(ts.len(), 2);
@@ -95,7 +94,7 @@ impl Uniplate for Expr {
                 // Field 1 - Box<Expr>
                 let (f1_tree, f1_ctx) = <Expr as Biplate<Expr>>::biplate(&*f1);
 
-                let tree = Many(vector![f0_tree, f1_tree]);
+                let tree = Many(VecDeque::from([f0_tree, f1_tree]));
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else { panic!() };
                     assert_eq!(ts.len(), 2);
@@ -170,7 +169,7 @@ impl Biplate<Expr> for Stmt {
                 //field 1 - Expr - target type
                 let (f1_tree, f1_ctx) = <Expr as Biplate<Expr>>::biplate(&f1);
 
-                let tree = Tree::<Expr>::Many(vector![f0_tree, f1_tree]);
+                let tree = Tree::<Expr>::Many(VecDeque::from([f0_tree, f1_tree]));
 
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else { panic!() };
@@ -198,7 +197,7 @@ impl Biplate<Expr> for Stmt {
                     zip(&f0_ctxs, elem_ts).map(|(ctx, t)| (**ctx)(t)).collect()
                 });
 
-                let tree = Many(vector![f0_tree]);
+                let tree = Many(VecDeque::from([f0_tree]));
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else {
                         panic!();
@@ -220,7 +219,7 @@ impl Biplate<Expr> for Stmt {
                 //Field 2 - Box::(Stmt)
                 let (f2_tree, f2_ctx) = <Stmt as Biplate<Expr>>::biplate(&*f2);
 
-                let tree = Many(vector![f0_tree, f1_tree, f2_tree]);
+                let tree = Many(VecDeque::from([f0_tree, f1_tree, f2_tree]));
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else { panic!() };
                     assert_eq!(ts.len(), 3);
@@ -240,7 +239,7 @@ impl Biplate<Expr> for Stmt {
                 //Field 1 - Box::(Stmt)
                 let (f1_tree, f1_ctx) = <Stmt as Biplate<Expr>>::biplate(&*f1);
 
-                let tree = Many(vector![f0_tree, f1_tree]);
+                let tree = Many(VecDeque::from([f0_tree, f1_tree]));
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else { panic!() };
                     assert_eq!(ts.len(), 2);
@@ -295,7 +294,7 @@ impl Uniplate for Stmt {
                 // defintion (see Biplate<Stmt> for Expr comments)
                 // let (f1_tree,f1_ctx) (Zero, Box::new(move |stmt| {let Zero = stmt else {panic!()}; f1.clone()}));
 
-                let tree = Many(vector![f0_tree, f1_tree]);
+                let tree = Many(VecDeque::from([f0_tree, f1_tree]));
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else { panic!() };
                     assert_eq!(ts.len(), 2);
@@ -309,12 +308,16 @@ impl Uniplate for Stmt {
                 // Special case for iterables / lists?
 
                 // Get trees and contexts for each element.
-                let (f0_elems, f0_ctxs): (Vec<Tree<Stmt>>, Vec<Box<dyn Fn(Tree<Stmt>) -> Stmt>>) =
-                    f0.into_iter()
-                        .map(|stmt| <Stmt as Biplate<Stmt>>::biplate(&stmt))
-                        .unzip();
+                #[allow(clippy::type_complexity)]
+                let (f0_elems, f0_ctxs): (
+                    VecDeque<Tree<Stmt>>,
+                    VecDeque<Box<dyn Fn(Tree<Stmt>) -> Stmt>>,
+                ) = f0
+                    .into_iter()
+                    .map(|stmt| <Stmt as Biplate<Stmt>>::biplate(&stmt))
+                    .unzip();
 
-                let f0_tree = Many(f0_elems.into());
+                let f0_tree = Many(f0_elems);
                 let f0_ctx: Box<dyn Fn(Tree<Stmt>) -> Vec<Stmt>> = Box::new(move |new_tree| {
                     let Many(elem_ts) = new_tree else {
                         panic!();
@@ -323,7 +326,7 @@ impl Uniplate for Stmt {
                     zip(&f0_ctxs, elem_ts).map(|(ctx, t)| (**ctx)(t)).collect()
                 });
 
-                let tree = Many(vector![f0_tree]);
+                let tree = Many(VecDeque::from([f0_tree]));
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else {
                         panic!();
@@ -346,7 +349,7 @@ impl Uniplate for Stmt {
                 //Field 2 - Box::(Stmt)
                 let (f2_tree, f2_ctx) = <Stmt as Biplate<Stmt>>::biplate(&*f2);
 
-                let tree = Many(vector![f0_tree, f1_tree, f2_tree]);
+                let tree = Many(VecDeque::from([f0_tree, f1_tree, f2_tree]));
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else { panic!() };
                     assert_eq!(ts.len(), 3);
@@ -366,7 +369,7 @@ impl Uniplate for Stmt {
                 //Field 1 - Box::(Stmt)
                 let (f1_tree, f1_ctx) = <Stmt as Biplate<Stmt>>::biplate(&*f1);
 
-                let tree = Many(vector![f0_tree, f1_tree]);
+                let tree = Many(VecDeque::from([f0_tree, f1_tree]));
                 let ctx = Box::new(move |new_tree| {
                     let Many(ts) = new_tree else { panic!() };
                     assert_eq!(ts.len(), 2);
