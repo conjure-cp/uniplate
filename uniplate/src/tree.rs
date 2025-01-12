@@ -2,8 +2,6 @@
 
 use std::{collections::VecDeque, sync::Arc};
 
-use proptest::prelude::*;
-
 use self::Tree::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -84,27 +82,28 @@ impl<T: Sized + Clone + Eq + 'static> Tree<T> {
     }
 }
 
-// FIXME: move into tests module so that proptest is not a public dependency
-#[allow(dead_code)]
-// Used by proptest for generating test instances of Tree<i32>.
-fn proptest_integer_trees() -> impl Strategy<Value = Tree<i32>> {
-    // https://proptest-rs.github.io/proptest/proptest/tutorial/enums.html
-    // https://proptest-rs.github.io/proptest/proptest/tutorial/recursive.html
-    let leaf = prop_oneof![Just(Tree::Zero), any::<i32>().prop_map(Tree::One),];
-
-    leaf.prop_recursive(
-        10,  // levels deep
-        512, // Shoot for maximum size of 512 nodes
-        20,  // We put up to 20 items per collection
-        |inner| proptest::collection::vec_deque(inner.clone(), 0..20).prop_map(Tree::Many),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use std::iter::zip;
 
+    use proptest::prelude::*;
+
     use super::*;
+
+    #[allow(dead_code)]
+    // Used by proptest for generating test instances of Tree<i32>.
+    fn proptest_integer_trees() -> impl Strategy<Value = Tree<i32>> {
+        // https://proptest-rs.github.io/proptest/proptest/tutorial/enums.html
+        // https://proptest-rs.github.io/proptest/proptest/tutorial/recursive.html
+        let leaf = prop_oneof![Just(Tree::Zero), any::<i32>().prop_map(Tree::One),];
+
+        leaf.prop_recursive(
+            10,  // levels deep
+            512, // Shoot for maximum size of 512 nodes
+            20,  // We put up to 20 items per collection
+            |inner| proptest::collection::vec_deque(inner.clone(), 0..20).prop_map(Tree::Many),
+        )
+    }
 
     proptest! {
         #[test]

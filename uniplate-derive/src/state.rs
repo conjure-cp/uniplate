@@ -68,7 +68,7 @@ impl ParserState {
     }
 
     /// Checks if a type can be walked into or not
-
+    ///
     /// This acts similarly to ast::InstanceMeta::walk_into_type but also considers the
     /// current to and from type as walkable.
     pub fn walk_into_type(&self, typ: &ast::Type) -> bool {
