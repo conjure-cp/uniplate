@@ -7,17 +7,26 @@ use std::{collections::VecDeque, sync::Arc};
 pub use super::Tree;
 
 /// `Biplate<U>` for type `T` operates over all values of type `U` within `T`.
+///
+/// **Note: `Biplate<T>` for `T` returns the input expression, not its children of type `T`. Use
+/// [`Uniplate`] instead.**
 pub trait Biplate<To>
 where
     Self: Sized + Clone + Eq + Uniplate + 'static,
     To: Sized + Clone + Eq + Uniplate + 'static,
 {
-    /// Returns all the top most children of type to within from.
+    /// Definition of a Biplate.
+    ///
+    /// This is a low-level method useful only for implementing the `Biplate` trait.
+    ///
+    /// Returns all the top most children of type `To` within `From`.
     ///
     /// If from == to then this function should return the root as the single child.
     fn biplate(&self) -> (Tree<To>, Box<dyn Fn(Tree<To>) -> Self>);
 
     /// Reconstructs the node with the given children.
+    ///
+    /// Biplate variant of [`Uniplate::children`]
     ///
     /// # Panics
     ///
@@ -38,11 +47,11 @@ where
         }
     }
 
-    /// Like descend but with more general types.
+    /// Biplate variant of [`Uniplate::descend`]
     ///
     /// If from == to then this function does not descend. Therefore, when writing definitions it
     /// is highly unlikely that this function should be used in the recursive case. A common
-    /// pattern is to first match the types using descendBi, then continue the recursion with
+    /// pattern is to first match the types using descend_bi, then continue the recursion with
     /// descend.
     fn descend_bi(&self, op: Arc<dyn Fn(To) -> To>) -> Self {
         let (children, ctx) = self.biplate();
@@ -56,6 +65,14 @@ where
     //
     // https://github.com/ndmitchell/uniplate/blob/66a2c55a7de0f5d8b0e437479719469244e00fa4/Data/Generics/Uniplate/Internal/OperationsInc.hs#L189
 
+    /// Gets all children of a node, including itself and all children.
+    ///
+    /// Biplate variant of [`Uniplate::universe`]
+    ///
+    /// Universe_bi does a preorder traversal: it returns a given node first, followed by its
+    /// children from left to right.
+    ///
+    /// If to == from then it returns the original element.
     fn universe_bi(&self) -> VecDeque<To> {
         self.children_bi()
             .into_iter()
@@ -64,10 +81,15 @@ where
     }
 
     /// Returns the children of a type. If to == from then it returns the original element (in contrast to children).
+    ///
+    /// Biplate variant of [`Uniplate::children`]
     fn children_bi(&self) -> VecDeque<To> {
         self.biplate().0.list().0
     }
 
+    /// Applies the given function to all nodes bottom up.
+    ///
+    /// Biplate variant of [`Uniplate::transform`]
     fn transform_bi(&self, op: Arc<dyn Fn(To) -> To>) -> Self {
         let (children, ctx) = self.biplate();
         ctx(children.map(Arc::new(move |child| child.transform(op.clone()))))
@@ -75,13 +97,18 @@ where
 
     /// Returns an iterator over all direct children of the input, paired with a function that
     /// "fills the hole" where the child was with a new value.
+    ///
+    /// `Biplate` variant of [`Uniplate::holes`]
     fn holes_bi(&self) -> impl Iterator<Item = (To, Arc<dyn Fn(To) -> Self>)> {
         // must be an iterator as we cannot clone Box<dyn Fn()>'s, so cannot stick them in
         // vectors, etc
         HolesBiIterator::new(self.clone())
     }
 
-    /// `holes_bi`, but for `universe()`
+    /// Returns an iterator over the universe of the input, paired with a function that "fills the
+    /// hole" where the child was with a new value.
+    ///
+    /// `Biplate` variant of [`Uniplate::contexts`]
     fn contexts_bi(&self) -> impl Iterator<Item = (To, Arc<dyn Fn(To) -> Self>)> {
         // from the Haskell: https://github.com/ndmitchell/uniplate/blob/master/Data/Generics/Uniplate/Internal/OperationsInc.hs
 
@@ -105,14 +132,24 @@ pub trait Uniplate
 where
     Self: Sized + Clone + Eq + 'static,
 {
+    /// Definition of a `Uniplate`.
+    ///
+    /// This method is only useful for defining a Uniplate.
     fn uniplate(&self) -> (Tree<Self>, Box<dyn Fn(Tree<Self>) -> Self>);
 
+    /// Applies a function to all direct children of this
+    ///
+    /// Consider using [`transform`](Uniplate::transform) instead, as it does bottom-up
+    /// transformation of the entire tree.
     fn descend(&self, op: Arc<dyn Fn(Self) -> Self>) -> Self {
         let (children, ctx) = self.uniplate();
         ctx(children.map(op))
     }
 
     /// Gets all children of a node, including itself and all children.
+    ///
+    /// Universe does a preorder traversal: it returns a given node first, followed by its
+    /// children from left to right.
     fn universe(&self) -> VecDeque<Self> {
         let mut results = VecDeque::from([self.clone()]);
         for child in self.children() {
@@ -148,7 +185,7 @@ where
         }
     }
 
-    /// Applies the given rule to all nodes bottom up.
+    /// Applies the given function to all nodes bottom up.
     fn transform(&self, f: Arc<dyn Fn(Self) -> Self>) -> Self {
         let (children, ctx) = self.uniplate();
         let f2 = f.clone(); // make another pointer to f for map.
@@ -198,7 +235,10 @@ where
         HolesIterator::new(self.clone())
     }
 
-    /// The `universe()` equivalent for `holes`.
+    /// Returns an iterator over the universe of the input, paired with a function that "fills the
+    /// hole" where the child was with a new value.
+    ///
+    /// The [`universe`](Uniplate::universe) equivalent of [`holes`](Uniplate::holes).
     fn contexts(&self) -> impl Iterator<Item = (Self, Arc<dyn Fn(Self) -> Self>)> {
         // from the Haskell: https://github.com/ndmitchell/uniplate/blob/master/Data/Generics/Uniplate/Internal/OperationsInc.hs
 

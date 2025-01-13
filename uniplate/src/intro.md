@@ -69,15 +69,16 @@ fn var_names(expr: &Expr) -> Vec<String>{
 }
 ```
 
-The functionality of Uniplate comes from two main traits: [`Uniplate`](Uniplate) and
-[`Biplate<T>`](Biplate).
+The functionality of Uniplate comes from two main traits: [`Uniplate`] and
+[`Biplate<T>`].
 
-* The [`Uniplate`](Uniplate) of `Expr` operates over all nested `Expr`s.
-* The [`Biplate<T>`](Biplate) of `Expr` operates over all nested values of type
+* The [`Uniplate`] of `Expr` operates over all nested `Expr`s.
+* The [`Biplate<T>`] of `Expr` operates over all nested values of type
   `T` in the expression tree.
 
 These traits provide traversal operations (e.g. [`children`](Uniplate::children)) as well as
-functional programming constructs such as [`map`](Uniplate::map) and [`fold`](Uniplate::fold).
+functional programming constructs such as `map` ([`transform`](Uniplate::transform), [`descend`](Uniplate::descend)) and `fold`([`cata`](Uniplate::cata).
+
 See the trait documentation for the full list of operations provided.
 
 The easiest way to use Uniplate is with the derive macro.
