@@ -24,8 +24,5 @@ trybuild = "1.0.101"
 proptest = "1.6.0"
 proptest-derive = "0.5.1"
 
-#[lints]
-#workspace = true
-
 [features]
 unstable = []

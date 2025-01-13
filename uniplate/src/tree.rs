@@ -1,13 +1,22 @@
-//#![cfg(feature = "unstable")]
+//! `Tree` is used for implementing custom instances.
+//!
+//! See [`Uniplate::uniplate`](super::Uniplate::uniplate),
+//! [`Biplate::biplate`](super::Biplate::biplate)
 
 use std::{collections::VecDeque, sync::Arc};
 
 use self::Tree::*;
 
+/// `Tree` stores the children (of type `T`) of a variable.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Tree<T: Sized + Clone + Eq> {
+    /// This element cannot contains no children.
     Zero,
+
+    /// This element contains exactly one child.
     One(T),
+
+    /// This element potentially contains many children.
     Many(VecDeque<Tree<T>>),
 }
 
@@ -72,7 +81,7 @@ impl<T: Sized + Clone + Eq + 'static> Tree<T> {
         )
     }
 
-    // Perform a map over all elements in the tree.
+    /// Applies a function over all elements in the tree.
     pub fn map(self, op: Arc<dyn Fn(T) -> T>) -> Tree<T> {
         match self {
             Zero => Zero,

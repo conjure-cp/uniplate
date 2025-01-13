@@ -1,4 +1,5 @@
 #![doc = include_str!("intro.md")]
+#![warn(missing_docs)]
 
 #[doc(hidden)]
 extern crate self as uniplate;
