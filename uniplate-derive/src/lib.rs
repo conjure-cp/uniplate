@@ -258,7 +258,7 @@ fn _derive_ctx(
                     }
                 }
             }
-            ast::Fields::None => quote! {#var_ident},
+            ast::Fields::Unit => quote! {#var_ident},
         };
         quote! {
             let ctx = Box::new(move |x: ::uniplate::Tree<#typ>| {
@@ -283,7 +283,7 @@ fn _derive_for_deref(fields: ast::Fields) -> TokenStream2 {
                 (#(#field_tokens),*)
             }
         }
-        ast::Fields::None => quote! {},
+        ast::Fields::Unit => quote! {},
     }
 }
 

@@ -97,7 +97,7 @@ pub struct Variant {
     pub ident: syn::Ident,
     #[allow(dead_code)]
     pub span: Span,
-    pub fields: Vec<Field>, // TODO: change to Fields
+    pub fields: Vec<TupleField>, // TODO: Support named fields
 }
 impl Parse for Variant {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -119,7 +119,8 @@ impl Parse for Variant {
         let content;
         parenthesized! {content in input};
 
-        let fields: Punctuated<Field, Token![,]> = content.call(Punctuated::parse_terminated)?;
+        let fields: Punctuated<TupleField, Token![,]> =
+            content.call(Punctuated::parse_terminated)?;
         Ok(Variant {
             span: ident.span(),
             ident,
@@ -158,9 +159,9 @@ impl Parse for DataStruct {
 // See https://doc.rust-lang.org/stable/reference/items/structs.html
 #[derive(Clone, Debug)]
 pub enum Fields {
-    Struct(Vec<NamedField>), // { name: Type, ... }
-    Tuple(Vec<Field>),       // (Type, ...)
-    None,                    // Unit-like struct or enum variant
+    Struct(Vec<StructField>), // { name: Type, ... }
+    Tuple(Vec<TupleField>),   // (Type, ...)
+    Unit,                     // Unit-like struct or enum variant
 }
 
 impl Parse for Fields {
@@ -170,20 +171,20 @@ impl Parse for Fields {
         if lookahead.peek(token::Brace) {
             // Struct fields (named)
             braced!(content in input);
-            let fields: Punctuated<NamedField, Token![,]> =
-                content.parse_terminated(NamedField::parse, Token![,])?;
+            let fields: Punctuated<StructField, Token![,]> =
+                content.parse_terminated(StructField::parse, Token![,])?;
             Ok(Fields::Struct(fields.into_iter().collect()))
         } else if lookahead.peek(token::Paren) {
             // Tuple fields (anonymous)
             parenthesized!(content in input);
-            let fields: Punctuated<Field, Token![,]> =
-                content.parse_terminated(Field::parse, Token![,])?;
+            let fields: Punctuated<TupleField, Token![,]> =
+                content.parse_terminated(TupleField::parse, Token![,])?;
             input.parse::<Token![;]>()?;
             Ok(Fields::Tuple(fields.into_iter().collect()))
         } else {
             // Unit-like (no fields)
             input.parse::<Token![;]>()?;
-            Ok(Fields::None)
+            Ok(Fields::Unit)
         }
     }
 }
@@ -193,7 +194,7 @@ impl Fields {
         match self {
             Fields::Struct(fields) => fields.is_empty(),
             Fields::Tuple(fields) => fields.is_empty(),
-            Fields::None => true,
+            Fields::Unit => true,
         }
     }
 
@@ -206,7 +207,7 @@ impl Fields {
                     .enumerate()
                     .map(|(i, _)| format_ident!("f{}", i)),
             ),
-            Fields::None => Box::new([].iter().cloned()),
+            Fields::Unit => Box::new([].iter().cloned()),
         }
     }
 
@@ -214,7 +215,7 @@ impl Fields {
         match self {
             Fields::Struct(fields) => Box::new(fields.iter().map(|f| &f.typ)),
             Fields::Tuple(fields) => Box::new(fields.iter().map(|f| &f.typ)),
-            Fields::None => Box::new([].iter()),
+            Fields::Unit => Box::new([].iter()),
         }
     }
 
@@ -223,15 +224,16 @@ impl Fields {
     }
 }
 
-// TODO: rename to AnonField
+/// An unnamed (anonymous) field in a tuple struct or enum variant
+/// e.g. `struct TupleLike(i32, i32);`
 #[derive(Clone, Debug)]
-pub struct Field {
+pub struct TupleField {
     #[allow(dead_code)]
     pub span: Span,
     pub typ: ast::Type,
 }
 
-impl Parse for Field {
+impl Parse for TupleField {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         // Layout of a field as per:
         // https://docs.rs/syn/latest/syn/struct.Field.html
@@ -240,20 +242,21 @@ impl Parse for Field {
         input.parse::<syn::Visibility>()?;
         let span = input.span();
         let typ: ast::Type = input.parse()?;
-        Ok(Field { span, typ })
+        Ok(TupleField { span, typ })
     }
 }
 
-/// A named (non-anonymous) field in a struct
+/// A named (non-anonymous) field in a struct or enum variant
+/// e.g. `struct Struct { field: i32 };`
 #[derive(Clone, Debug)]
-pub struct NamedField {
+pub struct StructField {
     #[allow(dead_code)]
     pub span: Span,
     pub ident: syn::Ident,
     pub typ: ast::Type,
 }
 
-impl Parse for NamedField {
+impl Parse for StructField {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         input.call(syn::Attribute::parse_outer)?;
         input.parse::<syn::Visibility>()?;
@@ -262,7 +265,7 @@ impl Parse for NamedField {
         input.parse::<Token![:]>()?;
         let typ = input.parse()?;
 
-        Ok(NamedField {
+        Ok(StructField {
             span: input.span(),
             ident,
             typ,
