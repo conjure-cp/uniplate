@@ -96,8 +96,9 @@ fn generate_child(
 
 fn walk_ctx(e: &MyEnum) -> &MyEnum {
     for (e1, c) in e.contexts() {
-        black_box(e1);
-        black_box(c);
+        black_box(e1.clone());
+        black_box(c.clone());
+        c(e1); // use context to benchmark it too
     }
     black_box(e)
 }
