@@ -68,7 +68,11 @@ fn _derive_a_enum_uniplate(state: &mut ParserState, data: ast::DataEnum) -> Toke
                 .map(|(field, ident)| _derive_for_field(state, &field.typ, ident))
                 .collect();
             let children_def = _derive_children(state, &ast::Fields::Tuple(variant.fields.clone()));
-            let ctx_def = _derive_ctx(state, &ast::Fields::Tuple(variant.fields.clone()), Some(&variant.ident));
+            let ctx_def = _derive_ctx(
+                state,
+                &ast::Fields::Tuple(variant.fields.clone()),
+                Some(&variant.ident),
+            );
             let ident = variant.ident;
             let enum_ident = state.data.ident();
             variant_tokens.push_back(quote! {
@@ -99,10 +103,12 @@ fn _derive_a_struct_uniplate(state: &mut ParserState, data: ast::DataStruct) -> 
         // Unit-like or empty struct
         return quote! {
             (::uniplate::Tree::Zero,Box::new(|_| #struct_ident))
-        }
+        };
     }
 
-    let field_defs: Vec<_> = data.fields.defs()
+    let field_defs: Vec<_> = data
+        .fields
+        .defs()
         .map(|(ident, typ)| _derive_for_field(state, typ, ident))
         .collect();
     let children_def = _derive_children(state, &data.fields);
@@ -123,11 +129,7 @@ fn _derive_a_struct_uniplate(state: &mut ParserState, data: ast::DataStruct) -> 
     }
 }
 
-fn _derive_for_field(
-    state: &mut ParserState,
-    typ: &ast::Type,
-    ident: syn::Ident,
-) -> TokenStream2 {
+fn _derive_for_field(state: &mut ParserState, typ: &ast::Type, ident: syn::Ident) -> TokenStream2 {
     let children_ident = format_ident!("{}_children", ident);
     let ctx_ident = format_ident!("{}_ctx", ident);
 
@@ -197,7 +199,8 @@ fn _derive_ctx(
     fields: &ast::Fields,
     var_ident: Option<&syn::Ident>,
 ) -> TokenStream2 {
-    let field_ctxs: Vec<_> = fields.defs()
+    let field_ctxs: Vec<_> = fields
+        .defs()
         .enumerate()
         .map(|(i, (ident, typ))| {
             if !state.walk_into_type(typ) {
@@ -245,7 +248,7 @@ fn _derive_ctx(
                 quote! {
                     #construct_ident(#(#field_ctxs),*)
                 }
-            },
+            }
             ast::Fields::Struct(_) => {
                 let items = std::iter::zip(fields.idents(), field_ctxs.iter())
                     .map(|(ident, ctx)| quote! {#ident: #ctx});
@@ -254,7 +257,7 @@ fn _derive_ctx(
                         #(#items),*
                     }
                 }
-            },
+            }
             ast::Fields::None => quote! {#var_ident},
         };
         quote! {
@@ -274,12 +277,12 @@ fn _derive_for_deref(fields: ast::Fields) -> TokenStream2 {
             quote! {
                 {#(#field_tokens),*}
             }
-        },
+        }
         ast::Fields::Tuple(_) => {
             quote! {
                 (#(#field_tokens),*)
             }
-        },
+        }
         ast::Fields::None => quote! {},
     }
 }

@@ -1,6 +1,7 @@
 *.log
 coverage
 info.json
+.vscode
 
 *-stats.json
 

@@ -28,8 +28,7 @@ impl Data {
 
 impl From<Data> for ast::PlateableType {
     fn from(val: Data) -> Self {
-        let mut typ_segments: Punctuated<syn::PathSegment, syn::token::PathSep> =
-            Punctuated::new();
+        let mut typ_segments: Punctuated<syn::PathSegment, syn::token::PathSep> = Punctuated::new();
         typ_segments.push(syn::PathSegment {
             ident: val.ident(),
             arguments: syn::PathArguments::None,
@@ -160,8 +159,8 @@ impl Parse for DataStruct {
 #[derive(Clone, Debug)]
 pub enum Fields {
     Struct(Vec<NamedField>), // { name: Type, ... }
-    Tuple(Vec<Field>), // (Type, ...)
-    None, // Unit-like struct or enum variant
+    Tuple(Vec<Field>),       // (Type, ...)
+    None,                    // Unit-like struct or enum variant
 }
 
 impl Parse for Fields {
@@ -177,7 +176,8 @@ impl Parse for Fields {
         } else if lookahead.peek(token::Paren) {
             // Tuple fields (anonymous)
             parenthesized!(content in input);
-            let fields: Punctuated<Field, Token![,]> = content.parse_terminated(Field::parse, Token![,])?;
+            let fields: Punctuated<Field, Token![,]> =
+                content.parse_terminated(Field::parse, Token![,])?;
             input.parse::<Token![;]>()?;
             Ok(Fields::Tuple(fields.into_iter().collect()))
         } else {
@@ -200,7 +200,12 @@ impl Fields {
     pub fn idents(&self) -> Box<dyn Iterator<Item = syn::Ident> + '_> {
         match self {
             Fields::Struct(fields) => Box::new(fields.iter().map(|f| f.ident.clone())),
-            Fields::Tuple(fields) => Box::new(fields.iter().enumerate().map(|(i, _)| format_ident!("f{}", i))),
+            Fields::Tuple(fields) => Box::new(
+                fields
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _)| format_ident!("f{}", i)),
+            ),
             Fields::None => Box::new([].iter().cloned()),
         }
     }
