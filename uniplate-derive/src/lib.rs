@@ -34,6 +34,7 @@ fn derive_a_uniplate(state: &mut ParserState) -> TokenStream2 {
     let from = state.from.to_token_stream();
     let tokens: TokenStream2 = match state.data.clone() {
         ast::Data::DataEnum(x) => _derive_a_enum_uniplate(state, x),
+        ast::Data::DataStruct(x) => _derive_a_struct_uniplate(state, x),
     };
 
     quote! {
@@ -61,13 +62,13 @@ fn _derive_a_enum_uniplate(state: &mut ParserState, data: ast::DataEnum) -> Toke
                 .fields
                 .iter()
                 .enumerate()
-                .map(|(i, _)| format_ident!("_f{}", i))
+                .map(|(i, _)| format_ident!("f{}", i))
                 .collect();
             let field_defs: Vec<_> = std::iter::zip(variant.fields.clone(), field_idents.clone())
-                .map(|(field, ident)| _derive_for_field(state, field, ident))
+                .map(|(field, ident)| _derive_for_field(state, &field.typ, ident))
                 .collect();
-            let children_def = _derive_children(state, &variant.fields);
-            let ctx_def = _derive_ctx(state, &variant.fields, &variant.ident);
+            let children_def = _derive_children(state, &ast::Fields::Tuple(variant.fields.clone()));
+            let ctx_def = _derive_ctx(state, &ast::Fields::Tuple(variant.fields.clone()), Some(&variant.ident));
             let ident = variant.ident;
             let enum_ident = state.data.ident();
             variant_tokens.push_back(quote! {
@@ -92,9 +93,39 @@ fn _derive_a_enum_uniplate(state: &mut ParserState, data: ast::DataEnum) -> Toke
     }
 }
 
+fn _derive_a_struct_uniplate(state: &mut ParserState, data: ast::DataStruct) -> TokenStream2 {
+    let struct_ident = state.data.ident();
+    if data.fields.is_empty() {
+        // Unit-like or empty struct
+        return quote! {
+            (::uniplate::Tree::Zero,Box::new(|_| #struct_ident))
+        }
+    }
+
+    let field_defs: Vec<_> = data.fields.defs()
+        .map(|(ident, typ)| _derive_for_field(state, typ, ident))
+        .collect();
+    let children_def = _derive_children(state, &data.fields);
+    let ctx_def = _derive_ctx(state, &data.fields, None);
+
+    let deref_stmt = _derive_for_deref(data.fields);
+
+    quote! {
+        let #struct_ident #deref_stmt = self;
+
+        #(#field_defs)*
+
+        #children_def
+
+        #ctx_def
+
+        (children,ctx)
+    }
+}
+
 fn _derive_for_field(
     state: &mut ParserState,
-    field: ast::Field,
+    typ: &ast::Type,
     ident: syn::Ident,
 ) -> TokenStream2 {
     let children_ident = format_ident!("{}_children", ident);
@@ -102,13 +133,13 @@ fn _derive_for_field(
 
     let to_t = state.to.clone().expect("").to_token_stream();
 
-    if !state.walk_into_type(&field.typ) {
+    if !state.walk_into_type(typ) {
         let copy_ident = format_ident!("{}_copy", ident);
         quote! {
             let #copy_ident = #ident.clone();
         }
     } else {
-        match &field.typ {
+        match typ {
             // dereference the field
             ast::Type::BoxedPlateable(x) => {
                 let from_t = x.inner_typ.to_token_stream();
@@ -132,20 +163,20 @@ fn _derive_for_field(
     }
 }
 
-fn _derive_children(state: &mut ParserState, fields: &[ast::Field]) -> TokenStream2 {
+fn _derive_children(state: &mut ParserState, fields: &ast::Fields) -> TokenStream2 {
     let mut subtrees: VecDeque<TokenStream2> = VecDeque::new();
-    for (i, field) in fields.iter().enumerate() {
-        if !state.walk_into_type(&field.typ) {
+    for (ident, typ) in fields.defs() {
+        if !state.walk_into_type(typ) {
             subtrees.push_back(quote!(::uniplate::Tree::Zero));
             continue;
         }
-        subtrees.push_back(match field.typ {
+        subtrees.push_back(match typ {
             ast::Type::BoxedPlateable(_) => {
-                let children_ident = format_ident!("_f{}_children", i);
+                let children_ident = format_ident!("{}_children", ident);
                 quote!(#children_ident)
             }
             ast::Type::Plateable(_) => {
-                let children_ident = format_ident!("_f{}_children", i);
+                let children_ident = format_ident!("{}_children", ident);
                 quote!(#children_ident)
             }
             ast::Type::Unplateable => quote!(::uniplate::Tree::Zero),
@@ -163,31 +194,30 @@ fn _derive_children(state: &mut ParserState, fields: &[ast::Field]) -> TokenStre
 
 fn _derive_ctx(
     state: &mut ParserState,
-    fields: &[ast::Field],
-    var_ident: &syn::Ident,
+    fields: &ast::Fields,
+    var_ident: Option<&syn::Ident>,
 ) -> TokenStream2 {
-    let field_ctxs: Vec<_> = fields
-        .iter()
+    let field_ctxs: Vec<_> = fields.defs()
         .enumerate()
-        .map(|(i, f)| {
-            if !state.walk_into_type(&f.typ) {
-                let ident = format_ident!("_f{}_copy", i);
+        .map(|(i, (ident, typ))| {
+            if !state.walk_into_type(typ) {
+                let ident = format_ident!("{}_copy", ident);
                 quote! {#ident.clone()}
             } else {
-                match &f.typ {
+                match typ {
                     ast::Type::Unplateable => {
-                        let ident = format_ident!("_f{}_copy", i);
-                        quote! {#ident.clone()}
+                        let copy_ident = format_ident!("{}_copy", ident);
+                        quote! {#copy_ident.clone()}
                     }
 
                     ast::Type::Plateable(_) => {
-                        let ctx_ident = format_ident!("_f{}_ctx", i);
+                        let ctx_ident = format_ident!("{}_ctx", ident);
                         quote! {#ctx_ident(x[#i].clone())}
                     }
 
                     ast::Type::BoxedPlateable(x) => {
                         let boxed_typ = x.box_typ.to_token_stream();
-                        let ctx_ident = format_ident!("_f{}_ctx", i);
+                        let ctx_ident = format_ident!("{}_ctx", ident);
                         quote! {#boxed_typ::new(#ctx_ident(x[#i].clone()))}
                     }
                 }
@@ -195,24 +225,62 @@ fn _derive_ctx(
         })
         .collect();
 
-    let data_ident = state.data.ident();
+    let data_ident = state.data.ident(); // The enum or struct name
     let typ = state.to.clone();
-    match fields.len() {
-        0 => {
+    if fields.is_empty() {
+        quote! {
+            let ctx = Box::new(move |x: ::uniplate::Tree<#typ>| {
+                let ::uniplate::Tree::Zero = x else { panic!()};
+                #var_ident
+            });
+        }
+    } else {
+        // If this is an enum, use the passed variant identifier
+        let construct_ident = match var_ident {
+            Some(var) => quote! {#data_ident::#var},
+            None => quote! {#data_ident},
+        };
+        let construct = match fields {
+            ast::Fields::Tuple(_) => {
+                quote! {
+                    #construct_ident(#(#field_ctxs),*)
+                }
+            },
+            ast::Fields::Struct(_) => {
+                let items = std::iter::zip(fields.idents(), field_ctxs.iter())
+                    .map(|(ident, ctx)| quote! {#ident: #ctx});
+                quote! {
+                    #construct_ident {
+                        #(#items),*
+                    }
+                }
+            },
+            ast::Fields::None => quote! {#var_ident},
+        };
+        quote! {
+            let ctx = Box::new(move |x: ::uniplate::Tree<#typ>| {
+                let ::uniplate::Tree::Many(x) = x else { panic!()};
+                #construct
+        });}
+    }
+}
+
+fn _derive_for_deref(fields: ast::Fields) -> TokenStream2 {
+    let field_tokens = fields.idents().map(|ident| {
+        quote! {#ident}
+    });
+    match fields {
+        ast::Fields::Struct(_) => {
             quote! {
-                let ctx = Box::new(move |x: ::uniplate::Tree<#typ>| {
-                    let ::uniplate::Tree::Zero = x else { panic!()};
-                    #data_ident::#var_ident
-                });
+                {#(#field_tokens),*}
             }
-        }
-        _ => {
+        },
+        ast::Fields::Tuple(_) => {
             quote! {
-                    let ctx = Box::new(move |x: ::uniplate::Tree<#typ>| {
-                        let ::uniplate::Tree::Many(x) = x else { panic!()};
-                        #data_ident::#var_ident(#(#field_ctxs),*)
-            });}
-        }
+                (#(#field_tokens),*)
+            }
+        },
+        ast::Fields::None => quote! {},
     }
 }
 
@@ -226,6 +294,7 @@ fn derive_a_biplate(state: &mut ParserState) -> TokenStream2 {
 
     let tokens: TokenStream2 = match state.data.clone() {
         ast::Data::DataEnum(x) => _derive_a_enum_uniplate(state, x),
+        ast::Data::DataStruct(x) => _derive_a_struct_uniplate(state, x),
     };
 
     quote! {
