@@ -2,6 +2,10 @@
 
 #![allow(clippy::type_complexity)]
 
+mod context;
+
+use context::{ContextIter, ContextIterBi};
+
 use std::{collections::VecDeque, sync::Arc};
 
 pub use super::Tree;
@@ -110,20 +114,7 @@ where
     ///
     /// `Biplate` variant of [`Uniplate::contexts`]
     fn contexts_bi(&self) -> impl Iterator<Item = (To, Arc<dyn Fn(To) -> Self>)> {
-        // from the Haskell: https://github.com/ndmitchell/uniplate/blob/master/Data/Generics/Uniplate/Internal/OperationsInc.hs
-
-        let mut my_iter: Box<dyn Iterator<Item = (To, Arc<dyn Fn(To) -> Self>)>> =
-            Box::new(std::iter::empty());
-
-        for (child, hole) in self.holes_bi() {
-            for (y, context) in child.contexts() {
-                let hole2 = hole.clone();
-                let new_ctx: Arc<dyn Fn(To) -> Self> = Arc::new(move |x| hole2(context(x)));
-
-                my_iter = Box::new(my_iter.chain(std::iter::once((y, new_ctx))));
-            }
-        }
-        my_iter
+        ContextIterBi::new(self.clone())
     }
 }
 
@@ -240,24 +231,7 @@ where
     ///
     /// The [`universe`](Uniplate::universe) equivalent of [`holes`](Uniplate::holes).
     fn contexts(&self) -> impl Iterator<Item = (Self, Arc<dyn Fn(Self) -> Self>)> {
-        // from the Haskell: https://github.com/ndmitchell/uniplate/blob/master/Data/Generics/Uniplate/Internal/OperationsInc.hs
-
-        let myself_ctx: Arc<dyn Fn(Self) -> Self> = Arc::new(|x: Self| x);
-        let myself_iter: Box<dyn Iterator<Item = (Self, Arc<dyn Fn(Self) -> Self>)>> =
-            Box::new(std::iter::once((self.clone(), myself_ctx)));
-
-        let mut my_iter: Box<dyn Iterator<Item = (Self, Arc<dyn Fn(Self) -> Self>)>> =
-            Box::new(myself_iter);
-
-        for (child, hole) in self.holes() {
-            for (y, context) in child.contexts() {
-                let hole2 = hole.clone();
-                let new_ctx: Arc<dyn Fn(Self) -> Self> = Arc::new(move |x| hole2(context(x)));
-
-                my_iter = Box::new(my_iter.chain(std::iter::once((y, new_ctx))));
-            }
-        }
-        my_iter
+        ContextIter::new(self.clone())
     }
 }
 
@@ -357,6 +331,20 @@ mod tests {
         fn test_context_bi_same_as_universe_bi(ast in proptest_stmts()) {
             prop_assert_eq!(Biplate::<Expr>::universe_bi(&ast),Biplate::<Expr>::contexts_bi(&ast).map(|(elem,_)| elem).collect::<VecDeque<_>>());
             prop_assert_eq!(Biplate::<Stmt>::universe_bi(&ast),Biplate::<Stmt>::contexts_bi(&ast).map(|(elem,_)| elem).collect::<VecDeque<_>>());
+        }
+
+        #[test]
+        fn test_context_isomorphic(ast in proptest_stmts()) {
+            for (e,c) in ast.contexts() {
+                prop_assert_eq!(c(e.clone()),ast.clone())
+            }
+        }
+
+        #[test]
+        fn test_context_bi_isomorphic(ast in proptest_stmts()) {
+            for (e,c) in Biplate::<Expr>::contexts_bi(&ast) {
+                prop_assert_eq!(c(e.clone()),ast.clone())
+            }
         }
 
         #[test]
