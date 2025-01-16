@@ -4,7 +4,8 @@ use uniplate::derive::Uniplate;
 #[uniplate()]
 struct NamingConflict {
     foo: i32,
-    foo_copy: i32,
+    foo_children: Vec<NamingConflict>,
+    foo_copy: Box<NamingConflict>,
 }
 
 fn main() {}

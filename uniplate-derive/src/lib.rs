@@ -62,10 +62,10 @@ fn _derive_a_enum_uniplate(state: &mut ParserState, data: ast::DataEnum) -> Toke
                 .fields
                 .iter()
                 .enumerate()
-                .map(|(i, _)| format_ident!("f{}", i))
+                .map(|(i, _)| format_ident!("_{}", i))
                 .collect();
             let field_defs: Vec<_> = std::iter::zip(variant.fields.clone(), field_idents.clone())
-                .map(|(field, ident)| _derive_for_field(state, &field.typ, ident))
+                .map(|(field, ident)| _derive_for_field_enum(state, &field.typ, ident))
                 .collect();
             let children_def = _derive_children(state, &ast::Fields::Tuple(variant.fields.clone()));
             let ctx_def = _derive_ctx(
@@ -109,16 +109,12 @@ fn _derive_a_struct_uniplate(state: &mut ParserState, data: ast::DataStruct) -> 
     let field_defs: Vec<_> = data
         .fields
         .defs()
-        .map(|(ident, typ)| _derive_for_field(state, typ, ident))
+        .map(|(mem, typ)| _derive_for_field_struct(state, typ, mem))
         .collect();
     let children_def = _derive_children(state, &data.fields);
     let ctx_def = _derive_ctx(state, &data.fields, None);
 
-    let deref_stmt = _derive_for_deref(data.fields);
-
     quote! {
-        let #struct_ident #deref_stmt = self;
-
         #(#field_defs)*
 
         #children_def
@@ -129,7 +125,11 @@ fn _derive_a_struct_uniplate(state: &mut ParserState, data: ast::DataStruct) -> 
     }
 }
 
-fn _derive_for_field(state: &mut ParserState, typ: &ast::Type, ident: syn::Ident) -> TokenStream2 {
+fn _derive_for_field_enum(
+    state: &mut ParserState,
+    typ: &ast::Type,
+    ident: syn::Ident, // `ident` here includes the leading underscore, like '_0'
+) -> TokenStream2 {
     let children_ident = format_ident!("{}_children", ident);
     let ctx_ident = format_ident!("{}_ctx", ident);
 
@@ -165,20 +165,60 @@ fn _derive_for_field(state: &mut ParserState, typ: &ast::Type, ident: syn::Ident
     }
 }
 
+fn _derive_for_field_struct(
+    state: &mut ParserState,
+    typ: &ast::Type,
+    mem: syn::Member,
+) -> TokenStream2 {
+    let children_ident = format_ident!("_{}_children", mem);
+    let ctx_ident = format_ident!("_{}_ctx", mem);
+
+    let to_t = state.to.clone().expect("").to_token_stream();
+
+    if !state.walk_into_type(typ) {
+        let copy_ident = format_ident!("_{}_copy", mem);
+        quote! {
+            let #copy_ident = self.#mem.clone();
+        }
+    } else {
+        match typ {
+            // dereference the field
+            ast::Type::BoxedPlateable(x) => {
+                let from_t = x.inner_typ.to_token_stream();
+                quote! {
+                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(self.#mem.borrow());
+                }
+            }
+            ast::Type::Plateable(x) => {
+                let from_t = x.to_token_stream();
+                quote! {
+                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(&self.#mem);
+                }
+            }
+            ast::Type::Unplateable => {
+                let copy_ident = format_ident!("_{}_copy", mem);
+                quote! {
+                    let #copy_ident = self.#mem.clone();
+                }
+            }
+        }
+    }
+}
+
 fn _derive_children(state: &mut ParserState, fields: &ast::Fields) -> TokenStream2 {
     let mut subtrees: VecDeque<TokenStream2> = VecDeque::new();
-    for (ident, typ) in fields.defs() {
+    for (mem, typ) in fields.defs() {
         if !state.walk_into_type(typ) {
             subtrees.push_back(quote!(::uniplate::Tree::Zero));
             continue;
         }
         subtrees.push_back(match typ {
             ast::Type::BoxedPlateable(_) => {
-                let children_ident = format_ident!("{}_children", ident);
+                let children_ident = format_ident!("_{}_children", mem);
                 quote!(#children_ident)
             }
             ast::Type::Plateable(_) => {
-                let children_ident = format_ident!("{}_children", ident);
+                let children_ident = format_ident!("_{}_children", mem);
                 quote!(#children_ident)
             }
             ast::Type::Unplateable => quote!(::uniplate::Tree::Zero),
@@ -202,25 +242,25 @@ fn _derive_ctx(
     let field_ctxs: Vec<_> = fields
         .defs()
         .enumerate()
-        .map(|(i, (ident, typ))| {
+        .map(|(i, (mem, typ))| {
             if !state.walk_into_type(typ) {
-                let ident = format_ident!("{}_copy", ident);
+                let ident = format_ident!("_{}_copy", mem);
                 quote! {#ident.clone()}
             } else {
                 match typ {
                     ast::Type::Unplateable => {
-                        let copy_ident = format_ident!("{}_copy", ident);
+                        let copy_ident = format_ident!("_{}_copy", mem);
                         quote! {#copy_ident.clone()}
                     }
 
                     ast::Type::Plateable(_) => {
-                        let ctx_ident = format_ident!("{}_ctx", ident);
+                        let ctx_ident = format_ident!("_{}_ctx", mem);
                         quote! {#ctx_ident(x[#i].clone())}
                     }
 
                     ast::Type::BoxedPlateable(x) => {
                         let boxed_typ = x.box_typ.to_token_stream();
-                        let ctx_ident = format_ident!("{}_ctx", ident);
+                        let ctx_ident = format_ident!("_{}_ctx", mem);
                         quote! {#boxed_typ::new(#ctx_ident(x[#i].clone()))}
                     }
                 }
@@ -268,24 +308,25 @@ fn _derive_ctx(
     }
 }
 
-fn _derive_for_deref(fields: ast::Fields) -> TokenStream2 {
-    let field_tokens = fields.idents().map(|ident| {
-        quote! {#ident}
-    });
-    match fields {
-        ast::Fields::Struct(_) => {
-            quote! {
-                {#(#field_tokens),*}
-            }
-        }
-        ast::Fields::Tuple(_) => {
-            quote! {
-                (#(#field_tokens),*)
-            }
-        }
-        ast::Fields::Unit => quote! {},
-    }
-}
+// TODO: remove this function
+// fn _derive_for_deref(fields: ast::Fields) -> TokenStream2 {
+//     let field_tokens = fields.idents().map(|ident| {
+//         quote! {#ident}
+//     });
+//     match fields {
+//         ast::Fields::Struct(_) => {
+//             quote! {
+//                 {#(#field_tokens),*}
+//             }
+//         }
+//         ast::Fields::Tuple(_) => {
+//             quote! {
+//                 (#(#field_tokens),*)
+//             }
+//         }
+//         ast::Fields::Unit => quote! {},
+//     }
+// }
 
 fn derive_a_biplate(state: &mut ParserState) -> TokenStream2 {
     let from = state.from.base_typ.to_token_stream();
