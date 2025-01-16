@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc dea2042532bd60ed4c0370bc932bf762cb2be4101b56b4a48b0fd51b2629a0ea # shrinks to ast = If(Neg(Val(7)), Assign("hmxfnlexpixrwxkdvzjc", Neg(Var("hqfpzluyfapnokludjdabwdztgwrhnps"))), Assign("zeftoboyywnommuxetwhytzylmiwrm", Sub(Val(-1884159020), Var("drdknqouublymrpqqcqwkjiauuceham"))))
+cc 92141696025f680596af8eeb133761ed2185af40f3a9a6dd9459a06cd4b64b99 # shrinks to ast = While(Val(0), If(Div(Val(0), Div(Val(0), Val(-1))), Assign("miajgtuagkwlomrpylgq", Neg(Add(Var("ra"), Val(-54038398)))), Assign("kuvalitggloevtt", Sub(Var("vzszov"), Val(705884814)))))
