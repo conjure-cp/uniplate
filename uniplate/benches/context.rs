@@ -134,10 +134,11 @@ fn walk_ctx_bi_vec(e: &Vec<MyEnum>) -> &Vec<MyEnum> {
 }
 
 criterion_group!(
-    benches,
-    benchmark_context_derived_enum_big,
-    benchmark_context_derived_enum_small,
-    benchmark_context_bi_derived_enum_big,
-    benchmark_context_bi_derived_enum_small
+    name = benches;
+    config = Criterion::default().measurement_time(std::time::Duration::from_secs(40));
+    targets = benchmark_context_derived_enum_big,
+        benchmark_context_derived_enum_small,
+        benchmark_context_bi_derived_enum_big,
+        benchmark_context_bi_derived_enum_small
 );
 criterion_main!(benches);
