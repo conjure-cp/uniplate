@@ -211,6 +211,18 @@ impl Fields {
         }
     }
 
+    pub fn members(&self) -> Box<dyn Iterator<Item = syn::Member> + '_> {
+        match self {
+            Fields::Struct(fields) => {
+                Box::new(fields.iter().map(|f| syn::Member::Named(f.ident.clone())))
+            }
+            Fields::Tuple(fields) => {
+                Box::new(fields.iter().enumerate().map(|(i, _)| syn::Member::from(i)))
+            }
+            Fields::Unit => Box::new([].iter().cloned()),
+        }
+    }
+
     pub fn types(&self) -> Box<dyn Iterator<Item = &ast::Type> + '_> {
         match self {
             Fields::Struct(fields) => Box::new(fields.iter().map(|f| &f.typ)),
@@ -219,8 +231,8 @@ impl Fields {
         }
     }
 
-    pub fn defs(&self) -> Box<dyn Iterator<Item = (syn::Ident, &ast::Type)> + '_> {
-        Box::new(std::iter::zip(self.idents(), self.types()))
+    pub fn defs(&self) -> Box<dyn Iterator<Item = (syn::Member, &ast::Type)> + '_> {
+        Box::new(std::iter::zip(self.members(), self.types()))
     }
 }
 
