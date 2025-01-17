@@ -113,6 +113,9 @@ where
     /// hole" where the child was with a new value.
     ///
     /// `Biplate` variant of [`Uniplate::contexts`]
+    ///
+    /// To efficiently update multiple values in a single traversal, use
+    /// [`ZipperBi`](crate::zipper::ZipperBi) instead.
     fn contexts_bi(&self) -> impl Iterator<Item = (To, Arc<dyn Fn(To) -> Self>)> {
         ContextIterBi::new(self.clone())
     }
@@ -230,6 +233,9 @@ where
     /// hole" where the child was with a new value.
     ///
     /// The [`universe`](Uniplate::universe) equivalent of [`holes`](Uniplate::holes).
+    ///
+    /// To efficiently update multiple values in a single traversal, use
+    /// [`Zipper`](crate::zipper::Zipper) instead.
     fn contexts(&self) -> impl Iterator<Item = (Self, Arc<dyn Fn(Self) -> Self>)> {
         ContextIter::new(self.clone())
     }
