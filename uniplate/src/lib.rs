@@ -7,6 +7,8 @@ extern crate self as uniplate;
 #[doc(hidden)]
 pub mod impls;
 
+pub mod zipper;
+
 mod traits;
 mod tree;
 
