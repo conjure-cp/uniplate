@@ -308,26 +308,6 @@ fn _derive_ctx(
     }
 }
 
-// TODO: remove this function
-// fn _derive_for_deref(fields: ast::Fields) -> TokenStream2 {
-//     let field_tokens = fields.idents().map(|ident| {
-//         quote! {#ident}
-//     });
-//     match fields {
-//         ast::Fields::Struct(_) => {
-//             quote! {
-//                 {#(#field_tokens),*}
-//             }
-//         }
-//         ast::Fields::Tuple(_) => {
-//             quote! {
-//                 (#(#field_tokens),*)
-//             }
-//         }
-//         ast::Fields::Unit => quote! {},
-//     }
-// }
-
 fn derive_a_biplate(state: &mut ParserState) -> TokenStream2 {
     let from = state.from.base_typ.to_token_stream();
     let to = state.to.to_token_stream();
