@@ -15,6 +15,11 @@ categories = ["rust-patterns", "data-structures", "algorithms"]
 
 [lib]
 
+
+[[bench]]
+name = "context"
+harness=false
+
 [dependencies]
 thiserror = "2.0.9"
 uniplate-derive = { version = "0.1.5", path = "../uniplate-derive" }
@@ -23,6 +28,7 @@ uniplate-derive = { version = "0.1.5", path = "../uniplate-derive" }
 trybuild = "1.0.101"
 proptest = "1.6.0"
 proptest-derive = "0.5.1"
+criterion = "0.5.1"
 
 [features]
 unstable = []
