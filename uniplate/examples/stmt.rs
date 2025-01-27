@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::collections::VecDeque;
+
 use uniplate::derive::Uniplate;
 use uniplate::Biplate;
 
@@ -33,7 +35,7 @@ pub fn main() {
 
     let stmt_1 = Assign("x".into(), Div(Box::new(Val(2)), Box::new(Var("y".into()))));
 
-    let strings_in_stmt_1 = <Stmt as Biplate<String>>::universe_bi(&stmt_1);
+    let strings_in_stmt_1: VecDeque<String> = stmt_1.universe_bi();
 
     // Test multi-type traversals
     assert_eq!(strings_in_stmt_1.len(), 2);
