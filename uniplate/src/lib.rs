@@ -24,7 +24,13 @@ pub mod test_common;
 pub mod derive {
     /// The Uniplate derive macro.
     ///
-    /// Currently this only supports `enums`.
+    /// The macro supports `structs` (including [tuple
+    /// structs](https://doc.rust-lang.org/stable/reference/items/structs.html#r-items.struct.tuple))
+    /// and `enums`.
+    ///
+    /// Enums with [struct-like
+    /// variants](https://doc.rust-lang.org/stable/reference/items/enumerations.html#r-items.enum.struct-expr)
+    /// are not yet supported.
     ///
     /// **See the top level crate documentation for usage details.**
     pub use uniplate_derive::Uniplate;
@@ -48,16 +54,14 @@ pub mod derive {
 /// ```
 /// use uniplate::{derive_unplateable,Uniplate,Biplate,derive::Uniplate};
 ///
-/// // The derive macro does not support structs yet
+/// // If you don't care about the children of a type, use derive_unplateable!
 /// #[derive(Clone,PartialEq,Eq)]
 /// struct Name {
 ///   first: String,
 ///   last: String
 /// }
 ///
-/// // ..so use derive_unplateable instead, as we don't care about the children.
 /// derive_unplateable!(Name);
-///
 ///
 /// #[derive(Clone,PartialEq,Eq,Uniplate)]
 /// #[uniplate()]
