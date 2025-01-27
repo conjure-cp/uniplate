@@ -73,6 +73,7 @@ functions (e.g. one that change all the variable names).
 With Uniplate, this boilerplate can be eliminated:
 
 ```rust
+use std::collections::VecDeque;
 use uniplate::{Uniplate,Biplate};
 use uniplate::derive::Uniplate;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
@@ -89,7 +90,8 @@ enum Expr {
 }
 
 fn vars_names(expr: &Expr) -> Vec<String>{
-    <Expr as Biplate<String>>::universe_bi(expr).into_iter().collect()
+    let names: VecDeque<String> = expr.universe_bi();
+    names.into()
 }
 ```
 
@@ -123,6 +125,7 @@ variable names used by child expressions.
 
 
 ```rust
+use std::collections::VecDeque;
 use uniplate::{Uniplate,Biplate};
 use uniplate::derive::Uniplate;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
@@ -151,7 +154,8 @@ enum Expr {
 }
 
 fn vars_names(stmt: &Stmt) -> Vec<String>{
-    <Stmt as Biplate<String>>::universe_bi(stmt).into_iter().collect()
+    let names: VecDeque<String> = expr.universe_bi();
+    names.into()
 }
 
 ```

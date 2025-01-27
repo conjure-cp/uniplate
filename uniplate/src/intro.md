@@ -63,9 +63,11 @@ With Uniplate, this boilerplate can be eliminated:
 ```rust
 # use uniplate::test_common::paper::Expr::*;
 # use uniplate::test_common::paper::Expr;
+use std::collections::VecDeque;
 use uniplate::Biplate;
 fn var_names(expr: &Expr) -> Vec<String>{
-    <Expr as Biplate<String>>::universe_bi(expr).into_iter().collect()
+    let names: VecDeque<String> = expr.universe_bi();
+    names.into()
 }
 ```
 
@@ -151,6 +153,7 @@ variable names used by child expressions:
 ```rust
 use uniplate::derive::Uniplate;
 use uniplate::{Uniplate,Biplate};
+use std::collections::VecDeque;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
 // look for strings inside expressions as well as statements 
 #[biplate(to=String,walk_into=[Expr])]
@@ -177,7 +180,8 @@ enum Expr {
 }
 
 fn vars_names(stmt: &Stmt) -> Vec<String>{
-    <Stmt as Biplate<String>>::universe_bi(stmt).into_iter().collect()
+    let names: VecDeque<String> = stmt.universe_bi();
+    names.into()
 }
 ```
 
