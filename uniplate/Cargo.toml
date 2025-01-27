@@ -1,6 +1,6 @@
 [package]
 name = "uniplate"
-version = "0.1.5"
+version = "0.2.0"
 authors = [
     "Niklas Dewally <niklas@dewally.com>",
     "Özgür Akgün <ozgurakgun@gmail.com>",
@@ -22,7 +22,7 @@ harness=false
 
 [dependencies]
 thiserror = "2.0.9"
-uniplate-derive = { version = "0.1.5", path = "../uniplate-derive" }
+uniplate-derive = { version = "0.2.0", path = "../uniplate-derive" }
 
 [dev-dependencies]
 trybuild = "1.0.101"
