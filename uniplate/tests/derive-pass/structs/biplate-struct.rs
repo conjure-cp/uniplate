@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use uniplate::{derive::Uniplate, Biplate};
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
@@ -31,16 +32,16 @@ pub fn main() {
     };
 
     // Test multi-type traversals
-    let ints_in_a = <A as Biplate<i32>>::universe_bi(&a);
+    let ints_in_a: VecDeque<i32> = a.universe_bi();
     assert_eq!(ints_in_a, vec![1, 2, 3]);
 
     // same type property
-    let children = <A as Biplate<A>>::children_bi(&a);
+    let children: VecDeque<A> = a.children_bi();
     assert_eq!(children.len(), 1);
     assert_eq!(children[0], a);
 
     // test with_children_bi
-    let children = <A as Biplate<i32>>::children_bi(&a);
-    let reconstructed = <A as Biplate<i32>>::with_children_bi(&a, children);
+    let children: VecDeque<i32> = a.children_bi();
+    let reconstructed: A = a.with_children_bi(children);
     assert_eq!(reconstructed, a);
 }

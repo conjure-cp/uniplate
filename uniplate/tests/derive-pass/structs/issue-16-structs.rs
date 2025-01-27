@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use uniplate::{derive::Uniplate, Biplate};
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
@@ -18,9 +19,7 @@ pub fn main() {
         children: inner_as.clone(),
     };
 
-    let result = <_ as Biplate<Vec<A>>>::children_bi(&a)
-        .into_iter()
-        .collect::<Vec<_>>();
+    let result: VecDeque<Vec<A>> = a.children_bi();
 
     assert_eq!(result.len(), 1);
     assert_eq!(result[0], inner_as);
