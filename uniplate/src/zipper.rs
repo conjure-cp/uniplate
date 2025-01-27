@@ -1,6 +1,6 @@
 //! Cursors into Uniplate types.
 //!
-//! A Zippers is a cursor into a functional data structure. The cursor can be moved around the data
+//! A zipper is a cursor into a functional data structure. The cursor can be moved around the data
 //! structure, and the value at the cursor can be quickly updated.
 //!
 //! Zippers are particularly useful for mutating self-referential data structures. Updating the
