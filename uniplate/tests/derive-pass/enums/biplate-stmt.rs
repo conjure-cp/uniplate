@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use uniplate::{derive::Uniplate, Biplate};
+use std::collections::VecDeque;
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[biplate(to=Expr)]
@@ -34,7 +35,7 @@ pub fn main() {
 
     let stmt_1 = Assign("x".into(), Div(Box::new(Val(2)), Box::new(Var("y".into()))));
 
-    let strings_in_stmt_1 = <Stmt as Biplate<String>>::universe_bi(&stmt_1);
+    let strings_in_stmt_1: VecDeque<String> = stmt_1.universe_bi();
 
     // Test multi-type traversals
     assert_eq!(strings_in_stmt_1.len(), 2);
@@ -42,12 +43,12 @@ pub fn main() {
     assert!(strings_in_stmt_1.contains(&"y".into()));
 
     // same type property
-    let children = <Stmt as Biplate<Stmt>>::children_bi(&stmt_1);
+    let children: VecDeque<Stmt> = stmt_1.children_bi();
     assert_eq!(children.len(),1);
     assert_eq!(children[0],stmt_1);
 
     // test with_children_bi
-    let children = <Stmt as Biplate<String>>::children_bi(&stmt_1);
-    let reconstructed = <Stmt as Biplate<String>>::with_children_bi(&stmt_1,children);
+    let children: VecDeque<String> = stmt_1.children_bi();
+    let reconstructed: Stmt = stmt_1.with_children_bi(children);
     assert_eq!(reconstructed,stmt_1);
 }

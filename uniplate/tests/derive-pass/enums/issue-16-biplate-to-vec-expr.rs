@@ -2,6 +2,7 @@
 
 #![allow(dead_code)]
 
+use std::collections::VecDeque;
 use uniplate::derive::Uniplate;
 use uniplate::Biplate;
 
@@ -37,10 +38,10 @@ pub fn main() {
     let inner_stmts = vec![Assign("x".into(),Val(1)), Return("x".into())];
     let stmt = Sequence(inner_stmts.clone());
 
-    let result = <_ as Biplate<Vec<Stmt>>>::children_bi(&stmt).into_iter().collect::<Vec<_>>();
+    let result: VecDeque<Vec<Stmt>> = stmt.children_bi();
 
     assert_eq!(result.len(),1);
     assert_eq!(result[0],inner_stmts);
-    assert_eq!(<Vec<Stmt> as Biplate<Vec<Stmt>>>::children_bi(&inner_stmts).len(),1);
-    assert_eq!(<Vec<Stmt> as Biplate<Vec<Stmt>>>::children_bi(&inner_stmts)[0],inner_stmts);
+    assert_eq!(<_ as Biplate<Vec<Stmt>>>::children_bi(&inner_stmts).len(),1);
+    assert_eq!(<_ as Biplate<Vec<Stmt>>>::children_bi(&inner_stmts)[0],inner_stmts);
 }

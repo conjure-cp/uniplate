@@ -404,7 +404,7 @@ fn children_bi_multitype() {
 
     let expected_expr_children = 4;
 
-    let children = <Stmt as Biplate<Expr>>::children_bi(&my_stmt);
+    let children: VecDeque<Expr> = my_stmt.children_bi();
 
     assert_eq!(expected_expr_children, children.len());
 
@@ -437,7 +437,7 @@ fn universe_bi_multitype() {
 
     let expected_expr_universe = 8;
 
-    let children = <Stmt as Biplate<Expr>>::universe_bi(&my_stmt);
+    let children: VecDeque<Expr> = my_stmt.universe_bi();
 
     assert_eq!(expected_expr_universe, children.len());
 
