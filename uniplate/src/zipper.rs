@@ -71,7 +71,7 @@ impl<T: Uniplate> Zipper<T> {
     }
 
     /// Mutably borrows the current focus.
-    pub fn focus_mut(&mut self) -> &T {
+    pub fn focus_mut(&mut self) -> &mut T {
         &mut self.focus
     }
 
@@ -228,7 +228,7 @@ impl<To: Uniplate, From: Biplate<To>> ZipperBi<To, From> {
     }
 
     /// Mutably borrows the current focus.
-    pub fn focus_mut(&mut self) -> &To {
+    pub fn focus_mut(&mut self) -> &mut To {
         &mut self.focus
     }
 
