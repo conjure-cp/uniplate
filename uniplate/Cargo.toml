@@ -32,3 +32,4 @@ criterion = "0.5.1"
 
 [features]
 unstable = []
+rc-refcell = []

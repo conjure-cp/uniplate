@@ -248,3 +248,22 @@ macro_rules! unreachable {
         }
     };
 }
+
+/// [`derive_unplateable`], but only implementing [`Uniplate`], not [`Biplate<T>`].
+#[doc(hidden)]
+#[macro_export]
+macro_rules! derive_uniplate_unplateable {
+    ($t:ty) => {
+        impl ::uniplate::Uniplate for $t {
+            fn uniplate(
+                &self,
+            ) -> (
+                ::uniplate::Tree<Self>,
+                Box<dyn Fn(::uniplate::Tree<Self>) -> Self>,
+            ) {
+                let val = self.clone();
+                (::uniplate::Tree::Zero, Box::new(move |_| val.clone()))
+            }
+        }
+    };
+}

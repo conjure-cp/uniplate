@@ -10,6 +10,9 @@
 
 use std::collections::VecDeque;
 
+mod cell;
+mod rc;
+
 use crate::derive_iter;
 use crate::derive_unplateable;
 use crate::Tree::*;
