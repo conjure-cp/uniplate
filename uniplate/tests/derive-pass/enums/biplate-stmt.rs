@@ -5,10 +5,11 @@ use std::collections::VecDeque;
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[biplate(to=Expr)]
+#[biplate(to=Option<Expr>)]
 #[biplate(to=String,walk_into=[Expr])]
 #[uniplate(walk_into=[Expr])]
 enum Stmt {
-    Assign(String, Expr),
+    Assign(String, Option<Expr>),
     Sequence(Vec<Stmt>),
     If(Expr, Box<Stmt>, Box<Stmt>),
     While(Expr, Box<Stmt>),
@@ -17,9 +18,9 @@ enum Stmt {
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[uniplate(walk_into=[Stmt])]
 #[biplate(to=String)]
+#[biplate(to=Option<Expr>)]
 #[biplate(to=Stmt)]
 enum Expr {
-    Nothing,
     Add(Box<Expr>, Box<Expr>),
     Sub(Box<Expr>, Box<Expr>),
     Mul(Box<Expr>, Box<Expr>),
@@ -33,7 +34,7 @@ pub fn main() {
     use Expr::*;
     use Stmt::*;
 
-    let stmt_1 = Assign("x".into(), Div(Box::new(Val(2)), Box::new(Var("y".into()))));
+    let stmt_1 = Assign("x".into(), Some(Div(Box::new(Val(2)), Box::new(Var("y".into())))));
 
     let strings_in_stmt_1: VecDeque<String> = stmt_1.universe_bi();
 
