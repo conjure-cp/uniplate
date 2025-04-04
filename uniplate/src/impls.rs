@@ -114,6 +114,21 @@ where
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use std::collections::VecDeque;
+
+    use crate::Biplate as _;
+
+    #[test]
+    fn option_with_children_bi_test() {
+        let expr = Some(10);
+        let expected = Some(11);
+        let actual: Option<i32> = expr.with_children_bi(VecDeque::from([11]));
+        assert_eq!(actual, expected);
+    }
+}
+
 // TODO: Add results. We might want to somehow make it optional whether we traverse into an error
 // type or not, allowing errors to not implement Uniplate / Biplate.
 //

@@ -102,8 +102,25 @@ macro_rules! derive_unplateable {
                 let val = self.clone();
                 (
                     ::uniplate::Tree::One(val.clone()),
-                    Box::new(move |_| val.clone()),
+                    Box::new(move |x| {
+                        let ::uniplate::Tree::One(x) = x else {
+                            panic!();
+                        };
+                        x
+                    }),
                 )
+            }
+        }
+
+        impl ::uniplate::Biplate<Option<$t>> for $t {
+            fn biplate(
+                &self,
+            ) -> (
+                ::uniplate::Tree<Option<$t>>,
+                Box<dyn Fn(::uniplate::Tree<Option<$t>>) -> $t>,
+            ) {
+                let val = self.clone();
+                (::uniplate::Tree::Zero, Box::new(move |_| val.clone()))
             }
         }
     };
