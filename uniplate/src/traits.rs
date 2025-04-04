@@ -95,8 +95,7 @@ where
     ///
     /// Biplate variant of [`Uniplate::transform`]
     fn transform_bi(&self, op: Arc<dyn Fn(To) -> To>) -> Self {
-        let (children, ctx) = self.biplate();
-        ctx(children.map(Arc::new(move |child| child.transform(op.clone()))))
+        self.descend_bi(Arc::new(move |x| x.transform(op.clone())))
     }
 
     /// Returns an iterator over all direct children of the input, paired with a function that
