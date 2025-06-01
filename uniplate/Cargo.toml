@@ -21,14 +21,14 @@ name = "context"
 harness=false
 
 [dependencies]
-thiserror = "2.0.9"
+thiserror = "2.0.12"
 uniplate-derive = { version = "0.2.3", path = "../uniplate-derive" }
 
 [dev-dependencies]
-trybuild = "1.0.101"
+trybuild = "1.0.105"
 proptest = "1.6.0"
 proptest-derive = "0.5.1"
-criterion = "0.5.1"
+criterion = "0.6.0"
 
 [features]
 unstable = []
