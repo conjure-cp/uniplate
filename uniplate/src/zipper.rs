@@ -148,6 +148,55 @@ impl<T: Uniplate> Zipper<T> {
         path_segment.left.push_back(old_focus);
         Some(())
     }
+
+    /// Returns an iterator over the left siblings of the focus, in left-right order.
+    pub fn iter_left_siblings(&self) -> impl Iterator<Item = &T> {
+        self.path
+            .last()
+            .map(|seg| seg.left.iter())
+            .into_iter()
+            .flatten()
+    }
+
+    /// Returns an iterator over the right siblings of the focus, in left-right order.
+    pub fn iter_right_siblings(&self) -> impl Iterator<Item = &T> {
+        self.path
+            .last()
+            .map(|seg| seg.right.iter())
+            .into_iter()
+            .flatten()
+    }
+
+    /// Returns an iterator over all nodes with the same parent as the focus, in left-right order.
+    ///
+    /// The iterator will yield left siblings first, then the focus, then right siblings.
+    pub fn iter_siblings(&self) -> impl Iterator<Item = &T> {
+        self.iter_left_siblings()
+            .chain(std::iter::once(self.focus()))
+            .chain(self.iter_right_siblings())
+    }
+
+    /// Returns an iterator over all ancestors of the focus, going upwards (parent to root).
+    ///
+    /// This is an expensive operation as it rebuilds each ancestor in sequence.
+    /// The returned ancestors will reflect any changes made so far during traversal in their subtrees.
+    pub fn iter_ancestors<'a>(&'a self) -> impl Iterator<Item = T> + 'a {
+        AncestorsIter {
+            zipper: self.clone(),
+        }
+    }
+}
+
+struct AncestorsIter<T: Uniplate> {
+    zipper: Zipper<T>,
+}
+
+impl<T: Uniplate> Iterator for AncestorsIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.zipper.go_up().map(|_| self.zipper.focus.clone())
+    }
 }
 
 /// A Zipper over `Biplate` types.
