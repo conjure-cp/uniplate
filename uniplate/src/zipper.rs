@@ -27,7 +27,7 @@ use crate::{Biplate, Tree, Uniplate};
 #[derive(Clone)]
 pub struct Zipper<T: Uniplate> {
     /// The current node
-    focus: T,
+    pub(crate) focus: T,
 
     /// The path back to the top, immediate parent last.
     ///
@@ -89,6 +89,14 @@ impl<T: Uniplate> Zipper<T> {
     /// Returns the depth of the focus from the root.
     pub fn depth(&self) -> usize {
         self.path.len()
+    }
+
+    /// Returns the index of the focus among its siblings from left to right.
+    ///
+    /// Returns `None` if the focus is the root node.
+    pub fn siblings_index(&self) -> Option<usize> {
+        let path_segment = self.path.last()?;
+        Some(path_segment.left.len())
     }
 
     /// Sets the focus to the parent of the focus (if it exists).
