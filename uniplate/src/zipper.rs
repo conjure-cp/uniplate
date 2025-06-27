@@ -91,6 +91,14 @@ impl<T: Uniplate> Zipper<T> {
         self.path.len()
     }
 
+    /// Returns the index of the focus among its siblings from left to right.
+    ///
+    /// Returns `None` if the focus is the root node.
+    pub(crate) fn siblings_index(&self) -> Option<usize> {
+        let path_segment = self.path.last()?;
+        Some(path_segment.left.len())
+    }
+
     /// Sets the focus to the parent of the focus (if it exists).
     pub fn go_up(&mut self) -> Option<()> {
         let mut path_seg = self.path.pop()?;
