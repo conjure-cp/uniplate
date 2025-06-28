@@ -73,9 +73,10 @@ where
     /// Replaces the focus of the [Zipper], returning the old focus.
     pub fn replace_focus(&mut self, new_focus: T) -> T {
         // Tags for the old subtree are now invalid
+        let parent_node = self.tag_node.borrow().parent.clone();
         let new_tag = Rc::new(RefCell::new(TagNode {
             data: (self.construct_tag)(&new_focus),
-            parent: None,
+            parent: parent_node,
             children: Vec::new(),
         }));
         let _ = std::mem::replace(&mut self.tag_node, new_tag);

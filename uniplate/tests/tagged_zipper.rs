@@ -73,3 +73,26 @@ fn tagged_zipper_come_back_left_to_mutated() {
     assert!(zipper.go_right().is_some());
     assert_eq!(*zipper.tag(), 43);
 }
+
+#[test]
+fn tagged_zipper_replace_focus() {
+    let mut zipper = TaggedZipper::new(Tree::Leaf, |t| match t {
+        Tree::Leaf => 1,
+        Tree::One(_) => 2,
+        Tree::Many(_) => 3,
+    });
+
+    assert_eq!(*zipper.tag(), 1);
+    zipper.replace_focus(Tree::One(Box::new(Tree::Leaf)));
+    assert_eq!(*zipper.tag(), 2);
+    *zipper.tag_mut() = 42;
+
+    assert!(zipper.go_down().is_some());
+    assert_eq!(*zipper.tag(), 1);
+
+    zipper.replace_focus(Tree::Many(vec![Tree::Leaf, Tree::Leaf]));
+    assert_eq!(*zipper.tag(), 3);
+
+    assert!(zipper.go_up().is_some());
+    assert_eq!(*zipper.tag(), 42);
+}
