@@ -27,7 +27,7 @@ use crate::{Biplate, Tree, Uniplate};
 #[derive(Clone)]
 pub struct Zipper<T: Uniplate> {
     /// The current node
-    pub(crate) focus: T,
+    focus: T,
 
     /// The path back to the top, immediate parent last.
     ///

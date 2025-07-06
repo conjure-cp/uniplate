@@ -17,11 +17,38 @@ struct TagNode<D> {
 
 /// A cursor into Uniplate types that allows for attaching arbitrary data to each node.
 ///
-/// This is a wrapper around the [`Zipper`] type where each node in the tree has a unique
+/// This is an extension of the [`Zipper`] type where each node in the tree has a unique
 /// persistent 'tag' associated with it, accessible with `tag` and `tag_mut`.
 ///
 /// Mutable access to the inner tree is not provided, as it could break the tag structure.
-/// Instead, use the methods provided by this type to mutate the zipper.
+/// Instead, use the methods provided by this type to mutate the Zipper.
+///
+/// # Example
+/// ```rust
+/// use uniplate::{derive::Uniplate, zipper::Zipper, tagged_zipper::TaggedZipper};
+///
+/// #[derive(Uniplate, Debug, Clone, PartialEq, Eq)]
+/// enum Tree {
+///     Leaf,
+///     Branch(Vec<Tree>),
+/// }
+///
+/// // A persistent i32 tag is associated with each node
+/// let tree = Tree::Branch(vec![Tree::Leaf, Tree::Leaf]);
+/// let mut zipper = TaggedZipper::new(tree, |node: &Tree| 0);
+///
+/// // Update the tag at the root
+/// zipper.replace_tag(42);
+///
+/// // Move down to the first (left-most) child
+/// // Since this node hasn't been visited before, the constructor is called
+/// zipper.go_down().unwrap();
+/// assert_eq!(*zipper.tag(), 0);
+///
+/// // The tag at the root persists
+/// zipper.go_up().unwrap();
+/// assert_eq!(*zipper.tag(), 42);
+/// ```
 pub struct TaggedZipper<T, D, F>
 where
     T: Uniplate,
@@ -67,7 +94,7 @@ where
     ///
     /// Mutable access to the inner tree is not provided, as it could break the tag structure.
     pub fn focus(&self) -> &T {
-        &self.zipper.focus
+        self.zipper.focus()
     }
 
     /// Replaces the focus of the [Zipper], returning the old focus.
@@ -98,6 +125,11 @@ where
     /// Mutably borrows the tag associated with the current focus.
     pub fn tag_mut(&mut self) -> RefMut<D> {
         RefMut::map(self.tag_node.borrow_mut(), |node| &mut node.data)
+    }
+
+    /// Replaces the tag associated with the current focus with `new_tag`.
+    pub fn replace_tag(&mut self, new_tag: D) {
+        self.tag_node.borrow_mut().data = new_tag;
     }
 
     /// Sets the focus to the parent of the focus (if it exists).
