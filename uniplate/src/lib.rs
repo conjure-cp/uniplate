@@ -14,7 +14,6 @@ mod tree;
 
 pub use traits::{Biplate, Uniplate};
 
-#[doc(hidden)]
 pub use tree::Tree;
 
 #[doc(hidden)]

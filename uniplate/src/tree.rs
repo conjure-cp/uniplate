@@ -1,13 +1,13 @@
-//! `Tree` is used for implementing custom instances.
-//!
-//! See [`Uniplate::uniplate`](super::Uniplate::uniplate),
-//! [`Biplate::biplate`](super::Biplate::biplate)
-
 use std::{collections::VecDeque, sync::Arc};
 
 use self::Tree::*;
 
-/// `Tree` stores the children (of type `T`) of a variable.
+///
+/// `Tree` stores the children of type `T` of a value, preserving its structure.
+///
+/// It is primarily used for implementing [`Uniplate`](super::Uniplate) and
+/// [`Biplate`](super::Biplate) instances.
+///
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Tree<T: Sized + Clone + Eq> {
     /// This element cannot contains no children.

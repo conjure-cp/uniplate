@@ -784,7 +784,7 @@ checksum = "a210d160f08b701c8721ba1c726c11662f877ea6b7094007e1ca9a1041945034"
 
 [[package]]
 name = "uniplate"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "criterion",
  "proptest",
@@ -796,7 +796,7 @@ dependencies = [
 
 [[package]]
 name = "uniplate-derive"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "itertools 0.14.0",
  "lazy_static",
