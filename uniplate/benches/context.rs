@@ -1,7 +1,7 @@
 //! Benchmarks for `context`,`context_bi`
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use uniplate::{derive::Uniplate, Biplate as _, Uniplate};
+use uniplate::{Biplate as _, Uniplate};
 
 #[derive(PartialEq, Eq, Clone, Uniplate)]
 #[uniplate()]

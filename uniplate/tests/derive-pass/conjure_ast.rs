@@ -5,7 +5,7 @@
 
 use core::fmt::Display;
 use core::fmt::Formatter;
-use uniplate::derive::Uniplate;
+use uniplate::Uniplate;
 #[derive(Clone, Debug, PartialEq, Eq, Uniplate)]
 #[uniplate()]
 #[biplate(to=Constant)]

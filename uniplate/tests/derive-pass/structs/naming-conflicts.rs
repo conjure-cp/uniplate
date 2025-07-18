@@ -1,4 +1,4 @@
-use uniplate::derive::Uniplate;
+use uniplate::Uniplate;
 
 /// Fields are named to cause conflicts with derive macro internal variable naming
 #[derive(Uniplate, PartialEq, Eq, Clone)]

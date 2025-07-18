@@ -1,4 +1,4 @@
-use crate::derive::Uniplate;
+use crate::Uniplate;
 
 // Examples found in the Uniplate paper.
 

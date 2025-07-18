@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use uniplate::{derive::Uniplate, Biplate};
+use uniplate::{Uniplate, Biplate};
 use std::collections::VecDeque;
 use std::sync::Arc;
 

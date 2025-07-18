@@ -1,4 +1,4 @@
-use uniplate::derive::Uniplate;
+use uniplate::Uniplate;
 #[derive(Clone, PartialEq, Eq, Uniplate)]
 #[uniplate()]
 enum A {

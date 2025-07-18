@@ -408,7 +408,7 @@ fn children_bi_multitype() {
 
     assert_eq!(expected_expr_children, children.len());
 
-    println!("{:?}", children);
+    println!("{children:?}");
     let Val(_) = children[0] else { panic!() };
     let Add(_, _) = children[1] else { panic!() };
     let Var(_) = children[2] else { panic!() };
@@ -441,7 +441,7 @@ fn universe_bi_multitype() {
 
     assert_eq!(expected_expr_universe, children.len());
 
-    println!("{:?}", children);
+    println!("{children:?}");
     let Val(_) = children[0] else { panic!() };
     let Add(_, _) = children[1] else { panic!() };
     let Var(_) = children[2] else { panic!() };

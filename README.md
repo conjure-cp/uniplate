@@ -75,7 +75,7 @@ With Uniplate, this boilerplate can be eliminated:
 ```rust
 use std::collections::VecDeque;
 use uniplate::{Uniplate,Biplate};
-use uniplate::derive::Uniplate;
+use uniplate::Uniplate;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
 #[uniplate()]
 #[biplate(to=String)]
@@ -127,7 +127,7 @@ variable names used by child expressions.
 ```rust
 use std::collections::VecDeque;
 use uniplate::{Uniplate,Biplate};
-use uniplate::derive::Uniplate;
+use uniplate::Uniplate;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
 // look for strings inside expressions as well as statements 
 #[biplate(to=String,walk_into=[Expr])]
