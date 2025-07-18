@@ -19,21 +19,18 @@ pub use tree::Tree;
 #[doc(hidden)]
 pub mod test_common;
 
-/// The derive macro.
-pub mod derive {
-    /// The Uniplate derive macro.
-    ///
-    /// The macro supports `structs` (including [tuple
-    /// structs](https://doc.rust-lang.org/stable/reference/items/structs.html#r-items.struct.tuple))
-    /// and `enums`.
-    ///
-    /// Enums with [struct-like
-    /// variants](https://doc.rust-lang.org/stable/reference/items/enumerations.html#r-items.enum.struct-expr)
-    /// are not yet supported.
-    ///
-    /// **See the top level crate documentation for usage details.**
-    pub use uniplate_derive::Uniplate;
-}
+/// The Uniplate derive macro.
+///
+/// The macro supports `structs` (including [tuple
+/// structs](https://doc.rust-lang.org/stable/reference/items/structs.html#r-items.struct.tuple))
+/// and `enums`.
+///
+/// Enums with [struct-like
+/// variants](https://doc.rust-lang.org/stable/reference/items/enumerations.html#r-items.enum.struct-expr)
+/// are not yet supported.
+///
+/// **See the top level crate documentation for usage details.**
+pub use uniplate_derive::Uniplate;
 
 /// Generates [`Biplate`] and [`Uniplate`] instances for an unplateable type.
 ///
@@ -51,7 +48,7 @@ pub mod derive {
 /// The below example uses `Biplate` to get all the `Names` in a binary tree.
 ///
 /// ```
-/// use uniplate::{derive_unplateable,Uniplate,Biplate,derive::Uniplate};
+/// use uniplate::{derive_unplateable,Uniplate,Biplate};
 ///
 /// // If you don't care about the children of a type, use derive_unplateable!
 /// #[derive(Clone,PartialEq,Eq)]

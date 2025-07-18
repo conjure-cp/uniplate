@@ -90,7 +90,7 @@ The easiest way to use Uniplate is with the derive macro.
 To derive Uniplate instances, use the `#[uniplate]` attribute:
 
 ```rust
-use uniplate::derive::Uniplate;
+use uniplate::Uniplate;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
 #[uniplate()]
 enum Expr {
@@ -107,7 +107,7 @@ enum Expr {
 To derive Biplate instances, use the `#[biplate]` attribute:
 
 ```rust
-use uniplate::derive::Uniplate;
+use uniplate::Uniplate;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
 #[biplate(to=String)]
 #[biplate(to=i32)]
@@ -151,7 +151,6 @@ only the variable names directly used inside the statement, but also any
 variable names used by child expressions:
 
 ```rust
-use uniplate::derive::Uniplate;
 use uniplate::{Uniplate,Biplate};
 use std::collections::VecDeque;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]

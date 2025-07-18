@@ -3,7 +3,7 @@
 #![allow(dead_code)]
 
 use std::collections::VecDeque;
-use uniplate::derive::Uniplate;
+use uniplate::Uniplate;
 use uniplate::Biplate;
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]

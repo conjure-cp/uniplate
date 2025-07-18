@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-use uniplate::{derive::Uniplate, Biplate};
+use uniplate::{Uniplate, Biplate};
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[biplate(to=B)]

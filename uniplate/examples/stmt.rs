@@ -2,8 +2,8 @@
 
 use std::collections::VecDeque;
 
-use uniplate::derive::Uniplate;
 use uniplate::Biplate;
+use uniplate::Uniplate;
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[uniplate()]
