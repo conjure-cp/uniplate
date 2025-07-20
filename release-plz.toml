@@ -12,7 +12,7 @@ git_tag_name = "v{{ version }}"
 git_tag_enable = true
 git_release_enable = true
 changelog_include =["uniplate-derive"]
-changelog_path = "../CHANGELOG.md"
+changelog_path = "CHANGELOG.md"
 
 [[package]] 
 name = "uniplate-derive"
