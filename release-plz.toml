@@ -17,4 +17,4 @@ changelog_path = "CHANGELOG.md"
 [[package]] 
 name = "uniplate-derive"
 version_group = "uniplate" # keep version numbers in sync
-changelog_update=false
+changelog_path = "" # no changelog
