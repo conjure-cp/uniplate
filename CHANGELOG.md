@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [**breaking**] move derive macro from `uniplate::derive::Uniplate` to `uniplate::Uniplate`
 - unhide `Tree` type
+- add `uniplate::tagged_zipper::TaggedZipper`
 
 ### Other
 
-- add tagged zipper type
 - *(deps)* bump the all group across 1 directory with 9 updates
