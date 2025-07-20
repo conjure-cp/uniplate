@@ -1,15 +1,20 @@
 [workspace]
 dependencies_update = true
 semver_check = true
-pr_labels = ["release"]
 git_tag_enable = false
 git_release_enable = false
 
+
 [[package]] 
 name = "uniplate"
+version_group = "uniplate" # keep version numbers in sync
 git_tag_name = "v{{ version }}"
 git_tag_enable = true
 git_release_enable = true
 changelog_include =["uniplate-derive"]
+changelog_path = "../CHANGELOG.md"
+
 [[package]] 
 name = "uniplate-derive"
+version_group = "uniplate" # keep version numbers in sync
+changelog_update=false
