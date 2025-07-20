@@ -10,6 +10,6 @@ name = "uniplate"
 git_tag_name = "v{{ version }}"
 git_tag_enable = true
 git_release_enable = true
-
+changelog_include =["uniplate-derive"]
 [[package]] 
 name = "uniplate-derive"
