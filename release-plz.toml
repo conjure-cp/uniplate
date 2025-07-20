@@ -1,0 +1,15 @@
+[workspace]
+dependencies_update = true
+semver_check = true
+pr_labels = ["release"]
+git_tag_enable = false
+git_release_enable = false
+
+[[package]] 
+name = "uniplate"
+git_tag_name = "v{{ version }}"
+git_tag_enable = true
+git_release_enable = true
+
+[[package]] 
+name = "uniplate-derive"
