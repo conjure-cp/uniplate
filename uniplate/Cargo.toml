@@ -21,7 +21,6 @@ name = "context"
 harness=false
 
 [dependencies]
-thiserror = "2.0.12"
 uniplate-derive = { version = "0.3.0", path = "../uniplate-derive" }
 
 [dev-dependencies]

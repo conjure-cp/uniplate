@@ -25,7 +25,6 @@ syn = { version = "2.0.104", features = [
     "extra-traits",
 ] }
 quote = "1.0.40"
-log = "0.4.27"
 itertools = "0.14.0"
 lazy_static = "1.4.0"
 
