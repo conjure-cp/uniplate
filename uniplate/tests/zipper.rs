@@ -35,7 +35,7 @@ fn zipper_up_from_branch() {
 
 #[test]
 fn zipper_iter_left_siblings() {
-    let mut zipper = Zipper::new(Tree::Many(0, (1..6).map(|i| Tree::Leaf(i)).collect()));
+    let mut zipper = Zipper::new(Tree::Many(0, (1..6).map(Tree::Leaf).collect()));
 
     zipper.go_down();
     assert!(zipper.iter_left_siblings().next().is_none());
@@ -49,7 +49,7 @@ fn zipper_iter_left_siblings() {
 
 #[test]
 fn zipper_iter_right_siblings() {
-    let mut zipper = Zipper::new(Tree::Many(0, (1..6).map(|i| Tree::Leaf(i)).collect()));
+    let mut zipper = Zipper::new(Tree::Many(0, (1..6).map(Tree::Leaf).collect()));
 
     zipper.go_down();
     assert!(zipper.iter_right_siblings().map(Tree::value).eq(2..6));
@@ -63,7 +63,7 @@ fn zipper_iter_right_siblings() {
 
 #[test]
 fn zipper_iter_siblings() {
-    let mut zipper = Zipper::new(Tree::Many(0, (1..6).map(|i| Tree::Leaf(i)).collect()));
+    let mut zipper = Zipper::new(Tree::Many(0, (1..6).map(Tree::Leaf).collect()));
 
     zipper.go_down();
     zipper.go_right();
