@@ -1,7 +1,7 @@
 use super::context::ContextIter;
 use super::holes::HolesIter;
 
-use std::{collections::VecDeque, sync::Arc};
+use std::collections::VecDeque;
 
 use crate::Tree;
 
@@ -19,7 +19,7 @@ where
     ///
     /// Consider using [`transform`](Uniplate::transform) instead, as it does bottom-up
     /// transformation of the entire tree.
-    fn descend(&self, op: Arc<dyn Fn(Self) -> Self>) -> Self {
+    fn descend(&self, op: &impl Fn(Self) -> Self) -> Self {
         let (children, ctx) = self.uniplate();
         ctx(children.map(op))
     }
@@ -64,20 +64,16 @@ where
     }
 
     /// Applies the given function to all nodes bottom up.
-    fn transform(&self, f: Arc<dyn Fn(Self) -> Self>) -> Self {
+    fn transform(&self, f: &impl Fn(Self) -> Self) -> Self {
         let (children, ctx) = self.uniplate();
-        let f2 = f.clone(); // make another pointer to f for map.
-        f(ctx(
-            children.map(Arc::new(move |child| child.transform(f2.clone())))
-        ))
+        f(ctx(children.map(&|child| child.transform(f))))
     }
 
     /// Rewrites by applying a rule everywhere it can.
-    fn rewrite(&self, f: Arc<dyn Fn(Self) -> Option<Self>>) -> Self {
+    fn rewrite(&self, f: &impl Fn(Self) -> Option<Self>) -> Self {
         let (children, ctx) = self.uniplate();
 
-        let f2 = f.clone(); // make another pointer to f for map.
-        let new_children = children.map(Arc::new(move |child| child.rewrite(f2.clone())));
+        let new_children = children.map(&|child| child.rewrite(f));
 
         match f(ctx(new_children.clone())) {
             None => ctx(new_children),
@@ -96,17 +92,17 @@ where
     /// The meaning of the callback function is the following:
     ///
     ///   f(element_to_fold, folded_children) -> folded_element
-    fn cata<T>(&self, op: Arc<dyn Fn(Self, VecDeque<T>) -> T>) -> T {
+    fn cata<T>(&self, op: &impl Fn(Self, VecDeque<T>) -> T) -> T {
         let children = self.children();
         (*op)(
             self.clone(),
-            children.into_iter().map(|c| c.cata(op.clone())).collect(),
+            children.into_iter().map(|c| c.cata(op)).collect(),
         )
     }
 
     /// Returns an iterator over all direct children of the input, paired with a function that
     /// "fills the hole" where the child was with a new value.
-    fn holes(&self) -> impl Iterator<Item = (Self, Arc<dyn Fn(Self) -> Self>)> {
+    fn holes(&self) -> impl Iterator<Item = (Self, impl Fn(Self) -> Self)> {
         // must be an iterator as we cannot clone Box<dyn Fn()>'s, so cannot stick them in
         // vectors, etc
 
@@ -120,7 +116,7 @@ where
     ///
     /// To efficiently update multiple values in a single traversal, use
     /// [`Zipper`](crate::zipper::Zipper) instead.
-    fn contexts(&self) -> impl Iterator<Item = (Self, Arc<dyn Fn(Self) -> Self>)> {
+    fn contexts(&self) -> impl Iterator<Item = (Self, impl Fn(Self) -> Self)> {
         ContextIter::new(self.clone())
     }
 }

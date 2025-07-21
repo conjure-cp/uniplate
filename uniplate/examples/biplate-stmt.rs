@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
 use std::collections::VecDeque;
-use std::sync::Arc;
 use uniplate::{Biplate, Uniplate};
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
@@ -73,11 +72,11 @@ pub fn main() {
         stmt_1_expected
     );
 
-    let stmt_1_actual = stmt_1.descend_bi(Arc::new(move |x: i32| x + 1));
+    let stmt_1_actual = stmt_1.descend_bi(&|x: i32| x + 1);
     assert_eq!(stmt_1_expected, stmt_1_actual);
 
     // test transform_bi
-    let stmt_1_actual = stmt_1.transform_bi(Arc::new(move |x: i32| x + 1));
+    let stmt_1_actual = stmt_1.transform_bi(&|x: i32| x + 1);
 
     assert_eq!(stmt_1_expected, stmt_1_actual);
 }

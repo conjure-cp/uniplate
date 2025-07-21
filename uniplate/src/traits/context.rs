@@ -1,6 +1,4 @@
-//! The underlying iterator for `Uniplate::context()`
-
-use std::sync::Arc;
+//! The underlying iterator for `Uniplate::context()`cionte
 
 use crate::zipper::{Zipper, ZipperBi};
 
@@ -22,7 +20,7 @@ impl<T: Uniplate> ContextIter<T> {
 }
 
 impl<T: Uniplate> Iterator for ContextIter<T> {
-    type Item = (T, Arc<dyn Fn(T) -> T>);
+    type Item = (T, Box<dyn Fn(T) -> T>);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
@@ -30,7 +28,7 @@ impl<T: Uniplate> Iterator for ContextIter<T> {
         };
         let node = self.zipper.focus().clone();
         let zipper1 = self.zipper.clone();
-        let hole_fn = Arc::new(move |x| {
+        let hole_fn = Box::new(move |x| {
             // TODO: if performance is still an issue, maybe we could make this a single call function
             // (FnOnce) then we wouldn't need to clone as much?
             let mut zipper2 = zipper1.clone();
@@ -70,7 +68,7 @@ impl<T: Uniplate, U: Biplate<T>> ContextIterBi<T, U> {
 }
 
 impl<T: Uniplate, U: Biplate<T>> Iterator for ContextIterBi<T, U> {
-    type Item = (T, Arc<dyn Fn(T) -> U>);
+    type Item = (T, Box<dyn Fn(T) -> U>);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
@@ -84,7 +82,7 @@ impl<T: Uniplate, U: Biplate<T>> Iterator for ContextIterBi<T, U> {
         let node = zipper.focus().clone();
 
         let zipper1 = zipper.clone();
-        let hole_fn = Arc::new(move |x| {
+        let hole_fn = Box::new(move |x| {
             // TODO: if performance is still an issue, maybe we could make this a single call function
             // (FnOnce) then we wouldn't need to clone as much?
             let mut zipper1 = zipper1.clone();

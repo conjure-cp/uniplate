@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::collections::VecDeque;
 
 use self::Tree::*;
 
@@ -82,11 +82,11 @@ impl<T: Sized + Clone + Eq + 'static> Tree<T> {
     }
 
     /// Applies a function over all elements in the tree.
-    pub fn map(self, op: Arc<dyn Fn(T) -> T>) -> Tree<T> {
+    pub fn map(self, op: &impl Fn(T) -> T) -> Tree<T> {
         match self {
             Zero => Zero,
             One(t) => One(op(t)),
-            Many(ts) => Many(ts.into_iter().map(|t| t.map(op.clone())).collect()),
+            Many(ts) => Many(ts.into_iter().map(|t| t.map(op)).collect::<_>()),
         }
     }
 }
@@ -125,7 +125,7 @@ mod tests {
 
         #[test]
         fn map_add(tree in proptest_integer_trees(), diff in -100i32..100i32) {
-            let new_tree = tree.clone().map(Arc::new(move |a| a+diff));
+            let new_tree = tree.clone().map(&|a| a+diff);
             let (old_children,_) = tree.list();
             let (new_children,_) = new_tree.list();
 

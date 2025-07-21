@@ -1,7 +1,7 @@
 use super::holes::HolesIterBi;
 use super::{context::ContextIterBi, Uniplate};
 
-use std::{collections::VecDeque, sync::Arc};
+use std::collections::VecDeque;
 
 pub use crate::Tree;
 /// `Biplate<U>` for type `T` operates over all values of type `U` within `T`.
@@ -51,7 +51,7 @@ where
     /// is highly unlikely that this function should be used in the recursive case. A common
     /// pattern is to first match the types using descend_bi, then continue the recursion with
     /// descend.
-    fn descend_bi(&self, op: Arc<dyn Fn(To) -> To>) -> Self {
+    fn descend_bi(&self, op: &impl Fn(To) -> To) -> Self {
         let (children, ctx) = self.biplate();
         ctx(children.map(op))
     }
@@ -88,15 +88,15 @@ where
     /// Applies the given function to all nodes bottom up.
     ///
     /// Biplate variant of [`Uniplate::transform`]
-    fn transform_bi(&self, op: Arc<dyn Fn(To) -> To>) -> Self {
-        self.descend_bi(Arc::new(move |x| x.transform(op.clone())))
+    fn transform_bi(&self, op: &impl Fn(To) -> To) -> Self {
+        self.descend_bi(&|x| x.transform(op))
     }
 
     /// Returns an iterator over all direct children of the input, paired with a function that
     /// "fills the hole" where the child was with a new value.
     ///
     /// `Biplate` variant of [`Uniplate::holes`]
-    fn holes_bi(&self) -> impl Iterator<Item = (To, Arc<dyn Fn(To) -> Self>)> {
+    fn holes_bi(&self) -> impl Iterator<Item = (To, impl Fn(To) -> Self)> {
         // must be an iterator as we cannot clone Box<dyn Fn()>'s, so cannot stick them in
         // vectors, etc
         HolesIterBi::new(self.clone())
@@ -109,7 +109,7 @@ where
     ///
     /// To efficiently update multiple values in a single traversal, use
     /// [`ZipperBi`](crate::zipper::ZipperBi) instead.
-    fn contexts_bi(&self) -> impl Iterator<Item = (To, Arc<dyn Fn(To) -> Self>)> {
+    fn contexts_bi(&self) -> impl Iterator<Item = (To, impl Fn(To) -> Self)> {
         ContextIterBi::new(self.clone())
     }
 }
