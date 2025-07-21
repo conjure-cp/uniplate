@@ -97,7 +97,7 @@ pub struct Variant {
     pub ident: syn::Ident,
     #[allow(dead_code)]
     pub span: Span,
-    pub fields: Vec<TupleField>, // TODO: Support named fields
+    pub fields: Fields,
 }
 impl Parse for Variant {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -107,24 +107,12 @@ impl Parse for Variant {
 
         input.call(syn::Attribute::parse_outer)?;
         let ident: syn::Ident = input.parse()?;
+        let fields: Fields = input.parse()?;
 
-        if !input.peek(token::Paren) {
-            return Ok(Variant {
-                span: ident.span(),
-                ident,
-                fields: Default::default(),
-            });
-        }
-
-        let content;
-        parenthesized! {content in input};
-
-        let fields: Punctuated<TupleField, Token![,]> =
-            content.call(Punctuated::parse_terminated)?;
         Ok(Variant {
             span: ident.span(),
             ident,
-            fields: fields.into_iter().collect(),
+            fields,
         })
     }
 }
@@ -147,10 +135,22 @@ impl Parse for DataStruct {
 
         input.parse::<syn::Generics>()?;
 
+        let fields: Fields = input.parse()?;
+
+        match fields {
+            Fields::Struct(_) => {}
+            Fields::Tuple(_) => {
+                input.parse::<Token![;]>()?;
+            }
+            Fields::Unit => {
+                input.parse::<Token![;]>()?;
+            }
+        }
+
         Ok(DataStruct {
             span: ident.span(),
             ident,
-            fields: input.parse()?,
+            fields,
         })
     }
 }
@@ -179,11 +179,9 @@ impl Parse for Fields {
             parenthesized!(content in input);
             let fields: Punctuated<TupleField, Token![,]> =
                 content.parse_terminated(TupleField::parse, Token![,])?;
-            input.parse::<Token![;]>()?;
             Ok(Fields::Tuple(fields.into_iter().collect()))
         } else {
             // Unit-like (no fields)
-            input.parse::<Token![;]>()?;
             Ok(Fields::Unit)
         }
     }
@@ -205,7 +203,7 @@ impl Fields {
                 fields
                     .iter()
                     .enumerate()
-                    .map(|(i, _)| format_ident!("f{}", i)),
+                    .map(|(i, _)| format_ident!("_{}", i)),
             ),
             Fields::Unit => Box::new([].iter().cloned()),
         }
