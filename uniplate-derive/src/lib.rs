@@ -49,43 +49,58 @@ fn derive_a_uniplate(state: &mut ParserState) -> TokenStream2 {
 fn _derive_a_enum_uniplate(state: &mut ParserState, data: ast::DataEnum) -> TokenStream2 {
     let mut variant_tokens = VecDeque::<TokenStream2>::new();
     for variant in data.variants {
-        if variant.fields.is_empty() {
-            let ident = variant.ident;
-            let enum_ident = state.data.ident();
-            variant_tokens.push_back(quote! {
-                #enum_ident::#ident => {
-                    (::uniplate::Tree::Zero,Box::new(|_| #enum_ident::#ident))
-                },
-            });
-        } else {
-            let field_idents: Vec<syn::Ident> = variant
-                .fields
-                .iter()
-                .enumerate()
-                .map(|(i, _)| format_ident!("_{}", i))
-                .collect();
-            let field_defs: Vec<_> = std::iter::zip(variant.fields.clone(), field_idents.clone())
-                .map(|(field, ident)| _derive_for_field_enum(state, &field.typ, ident))
-                .collect();
-            let children_def = _derive_children(state, &ast::Fields::Tuple(variant.fields.clone()));
-            let ctx_def = _derive_ctx(
-                state,
-                &ast::Fields::Tuple(variant.fields.clone()),
-                Some(&variant.ident),
-            );
-            let ident = variant.ident;
-            let enum_ident = state.data.ident();
-            variant_tokens.push_back(quote! {
-                #enum_ident::#ident(#(#field_idents),*) => {
-                    #(#field_defs)*
+        let fields = &variant.fields;
+        let field_idents: Vec<_> = fields.idents().collect();
 
-                    #children_def
+        let field_defs: Vec<_> = fields
+            .defs()
+            .map(|(mem, typ)| _derive_for_field_enum(state, typ, &mem))
+            .collect();
 
-                    #ctx_def
+        let children_def = _derive_children(state, fields);
+        let ctx_def = _derive_ctx(state, fields, Some(&variant.ident));
+        let ident = variant.ident;
+        let enum_ident = state.data.ident();
 
-                    (children,ctx)
-                },
-            });
+        match variant.fields {
+            ast::Fields::Struct(_) => {
+                variant_tokens.push_back(quote! {
+                    #enum_ident::#ident{#(#field_idents),*} => {
+                        #(#field_defs)*
+
+                        #children_def
+
+                        #ctx_def
+
+                        (children,ctx)
+                    },
+                });
+            }
+
+            ast::Fields::Tuple(_) => {
+                variant_tokens.push_back(quote! {
+                    #enum_ident::#ident(#(#field_idents),*) => {
+                        #(#field_defs)*
+
+                        #children_def
+
+                        #ctx_def
+
+                        (children,ctx)
+                    },
+                });
+            }
+            ast::Fields::Unit => {
+                variant_tokens.push_back(quote! {
+                    #enum_ident::#ident => {
+                        #children_def
+
+                        #ctx_def
+
+                        (children,ctx)
+                    },
+                });
+            }
         }
     }
 
@@ -128,17 +143,24 @@ fn _derive_a_struct_uniplate(state: &mut ParserState, data: ast::DataStruct) -> 
 fn _derive_for_field_enum(
     state: &mut ParserState,
     typ: &ast::Type,
-    ident: syn::Ident, // `ident` here includes the leading underscore, like '_0'
+    mem: &syn::Member,
 ) -> TokenStream2 {
-    let children_ident = format_ident!("{}_children", ident);
-    let ctx_ident = format_ident!("{}_ctx", ident);
+    // the identifier used in the match clause.
+    // either _1, or the field name.
+    let match_ident = match mem {
+        syn::Member::Named(ident) => ident.clone(),
+        syn::Member::Unnamed(index) => format_ident!("_{}", index),
+    };
+
+    let children_ident = format_ident!("_{}_children", mem);
+    let ctx_ident = format_ident!("_{}_ctx", mem);
 
     let to_t = state.to.clone().expect("").to_token_stream();
 
     if !state.walk_into_type(typ) {
-        let copy_ident = format_ident!("{}_copy", ident);
+        let copy_ident = format_ident!("_{}_copy", mem);
         quote! {
-            let #copy_ident = #ident.clone();
+            let #copy_ident = #match_ident.clone();
         }
     } else {
         match typ {
@@ -146,19 +168,19 @@ fn _derive_for_field_enum(
             ast::Type::BoxedPlateable(x) => {
                 let from_t = x.inner_typ.to_token_stream();
                 quote! {
-                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(#ident.borrow());
+                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(#match_ident.borrow());
                 }
             }
             ast::Type::Plateable(x) => {
                 let from_t = x.to_token_stream();
                 quote! {
-                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(#ident);
+                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(#match_ident);
                 }
             }
             ast::Type::Unplateable => {
-                let copy_ident = format_ident!("{}_copy", ident);
+                let copy_ident = format_ident!("_{}_copy", mem);
                 quote! {
-                    let #copy_ident = #ident.clone();
+                    let #copy_ident = #match_ident.clone();
                 }
             }
         }
@@ -270,11 +292,17 @@ fn _derive_ctx(
 
     let data_ident = state.data.ident(); // The enum or struct name
     let typ = state.to.clone();
+
+    // If this is an enum, use the passed variant identifier
+    let construct_ident = match var_ident {
+        Some(var) => quote! {#data_ident::#var},
+        None => quote! {#data_ident},
+    };
     if fields.is_empty() {
         quote! {
             let ctx = Box::new(move |x: ::uniplate::Tree<#typ>| {
                 let ::uniplate::Tree::Zero = x else { panic!()};
-                #var_ident
+                #construct_ident
             });
         }
     } else {
