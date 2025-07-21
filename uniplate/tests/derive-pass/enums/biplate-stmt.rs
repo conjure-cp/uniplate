@@ -2,7 +2,6 @@
 
 use uniplate::{Uniplate, Biplate};
 use std::collections::VecDeque;
-use std::sync::Arc;
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[biplate(to=Expr)]
@@ -64,15 +63,15 @@ pub fn main() {
     let stmt_1_expected = Assign("x".into(), Some(Div(Box::new(Val(3)), Box::new(Var("y".into())))));
     assert_eq!(stmt_1.with_children_bi(VecDeque::from([3])),stmt_1_expected);
 
-    let stmt_1_actual = stmt_1.descend_bi(Arc::new(move |x: i32| {
+    let stmt_1_actual = stmt_1.descend_bi(&|x: i32| {
         x+1
-    }));
+    });
     assert_eq!(stmt_1_expected,stmt_1_actual);
 
     // test transform_bi 
-    let stmt_1_actual = stmt_1.transform_bi(Arc::new(move |x: i32| {
+    let stmt_1_actual = stmt_1.transform_bi(&|x: i32| {
         x+1
-    }));
+    });
 
     assert_eq!(stmt_1_expected,stmt_1_actual);
 }

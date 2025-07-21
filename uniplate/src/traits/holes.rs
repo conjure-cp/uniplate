@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::collections::VecDeque;
 
 use super::{Biplate, Uniplate};
 
@@ -9,14 +9,14 @@ pub(super) struct HolesIter<T: Uniplate> {
 }
 
 impl<T: Uniplate> Iterator for HolesIter<T> {
-    type Item = (T, Arc<dyn Fn(T) -> T>);
+    type Item = (T, Box<dyn Fn(T) -> T>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let (i, child) = self.children_iter.next()?;
 
         let children2 = self.children.clone();
         let parent2 = self.parent.clone();
-        let hole = Arc::new(move |x: T| {
+        let hole = Box::new(move |x: T| {
             let mut children = children2.clone();
             children[i] = x;
             parent2.with_children(children)
@@ -46,14 +46,14 @@ pub(super) struct HolesIterBi<T: Uniplate, F: Biplate<T>> {
 }
 
 impl<T: Uniplate, F: Biplate<T>> Iterator for HolesIterBi<T, F> {
-    type Item = (T, Arc<dyn Fn(T) -> F>);
+    type Item = (T, Box<dyn Fn(T) -> F>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let (i, child) = self.children_iter.next()?;
 
         let children2 = self.children.clone();
         let parent2 = self.parent.clone();
-        let hole = Arc::new(move |x: T| {
+        let hole = Box::new(move |x: T| {
             let mut children = children2.clone();
             children[i] = x;
             parent2.with_children_bi(children)
