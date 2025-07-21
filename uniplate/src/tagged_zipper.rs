@@ -207,7 +207,7 @@ where
         self.zipper.go_down()?;
 
         // Move to or create the first child tag node
-        let child_tag = self.tag_node.borrow().children.get(0).cloned();
+        let child_tag = self.tag_node.borrow().children.first().cloned();
         self.tag_node = match child_tag {
             Some(tag) => tag.clone(),
             None => {
