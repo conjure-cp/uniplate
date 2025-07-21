@@ -1,6 +1,6 @@
 [package]
 name = "uniplate-derive"
-version = "0.3.0"
+version = "0.3.1"
 authors = [
     "Niklas Dewally <niklas@dewally.com>",
     "Özgür Akgün <ozgurakgun@gmail.com>",
