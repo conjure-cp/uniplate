@@ -1,11 +1,12 @@
 //! Global(ish) Parser State variables
 
-use crate::prelude::*;
+use crate::{ast::InstanceMeta, prelude::*};
 use std::collections::VecDeque;
 
 use self::ast::HasBaseType;
 
 /// State variables for biplate derive.
+#[derive(Debug)]
 pub struct ParserState {
     /// The type we are deriving Biplate on.
     pub from: ast::PlateableType,
@@ -21,6 +22,9 @@ pub struct ParserState {
 
     /// Instances left to generate.
     pub instances_to_generate: VecDeque<ast::InstanceMeta>,
+
+    /// Instances generated
+    pub instances_generated: VecDeque<ast::InstanceMeta>,
 }
 
 impl ParserState {
@@ -40,6 +44,7 @@ impl ParserState {
             current_instance: None,
             to: None,
             instances_to_generate,
+            instances_generated: Default::default(),
             from,
             data,
         }
@@ -47,6 +52,10 @@ impl ParserState {
 
     pub fn next_instance(&mut self) -> Option<()> {
         let next_instance = self.instances_to_generate.pop_back();
+        if let Some(current_instance) = self.current_instance.take() {
+            self.instances_generated.push_back(current_instance);
+        }
+
         self.current_instance = next_instance;
 
         self.to = match &self.current_instance {
@@ -72,6 +81,63 @@ impl ParserState {
     /// This acts similarly to ast::InstanceMeta::walk_into_type but also considers the
     /// current to and from type as walkable.
     pub fn walk_into_type(&self, typ: &ast::Type) -> bool {
+        let res = self.walk_into_type_inner(typ);
+        // trace walk_into calls if cfg value uniplate_trace = "walkinto" is set
+        //
+        // to enable it on build: RUSTFLAGS='--cfg=uniplate_trace="walkinto"' cargo ...
+        if cfg!(uniplate_trace = "walkinto") {
+            let from = &self.from;
+            let to = &self.to;
+            if res {
+                eprintln!(
+                    "[walk-into+] Instance from {from} to {to}: walking into type {typ}",
+                    from = quote!(#from),
+                    to = quote!(#to),
+                    typ = quote!(#typ)
+                );
+            } else {
+                let from_basetype = from.base_typ();
+                let to_basetype = to.clone().unwrap().base_typ();
+                eprintln!(
+                    "[walk-into-] Instance from {from} to {to}: NOT walking into type {typ}",
+                    from = quote!(#from),
+                    to = quote!(#to),
+                    typ = quote!(#typ)
+                );
+                eprintln!(
+                    "             .. from base type is {}",
+                    quote!(#from_basetype)
+                );
+                eprintln!("             .. to base type is {}", quote!(#to_basetype));
+                match typ {
+                    ast::Type::BoxedPlateable(boxed_plateable_type) => {
+                        let box_type = &boxed_plateable_type.box_typ;
+                        let wrapper_type = &boxed_plateable_type.inner_typ.wrapper_typ;
+                        let base_type = &boxed_plateable_type.inner_typ.base_typ;
+                        eprintln!("             .. target type is a boxed plateable type");
+                        eprintln!("             .. box type is {}", quote!(#box_type));
+                        eprintln!("             .. wrapper type is {}", quote!(#wrapper_type));
+                        eprintln!("             .. base type is {}", quote!(#base_type));
+                    }
+                    ast::Type::Plateable(plateable_type) => {
+                        let wrapper_type = &plateable_type.wrapper_typ;
+                        let base_type = &plateable_type.base_typ;
+                        eprintln!("             .. target type is a plateable type");
+                        eprintln!("             .. wrapper type is {}", quote!(#wrapper_type));
+                        eprintln!("             .. base type is {}", quote!(#base_type));
+                    }
+                    ast::Type::Unplateable => {
+                        eprintln!("             .. target type is an unplateable type")
+                    }
+                }
+            }
+        }
+
+        res
+    }
+
+    #[inline(always)]
+    fn walk_into_type_inner(&self, typ: &ast::Type) -> bool {
         let Some(base_typ) = typ.base_typ() else {
             return false;
         };
@@ -85,5 +151,29 @@ impl ParserState {
         };
 
         self.current_instance.clone().expect("").walk_into_type(typ)
+    }
+
+    /// Returns a reference to the uniplate instance
+    ///
+    /// # Panics
+    ///
+    /// If there are more than one uniplate instances
+    pub fn get_uniplate_instance(&self) -> &InstanceMeta {
+        if let Some(instance @ InstanceMeta::Uniplate(_)) = &self.current_instance {
+            return instance;
+        } else {
+            for instance in &self.instances_to_generate {
+                if let InstanceMeta::Uniplate(_) = instance {
+                    return instance;
+                }
+            }
+
+            for instance in &self.instances_generated {
+                if let InstanceMeta::Uniplate(_) = &instance {
+                    return instance;
+                }
+            }
+        }
+        unreachable!();
     }
 }

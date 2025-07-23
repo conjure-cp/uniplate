@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use quote::format_ident;
 use syn::token;
 
@@ -24,14 +26,33 @@ impl Data {
             Data::DataStruct(x) => x.ident.clone(),
         }
     }
+
+    pub fn generics(&self) -> &Generics {
+        match self {
+            Data::DataEnum(data_enum) => &data_enum.generics,
+            Data::DataStruct(data_struct) => &data_struct.generics,
+        }
+    }
 }
 
 impl From<Data> for ast::PlateableType {
     fn from(val: Data) -> Self {
         let mut typ_segments: Punctuated<syn::PathSegment, syn::token::PathSep> = Punctuated::new();
+
+        let arguments = if val.generics().any_generic_params() {
+            syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments {
+                colon2_token: None,
+                lt_token: Default::default(),
+                args: val.generics().as_generic_arguments(),
+                gt_token: Default::default(),
+            })
+        } else {
+            syn::PathArguments::None
+        };
+
         typ_segments.push(syn::PathSegment {
             ident: val.ident(),
-            arguments: syn::PathArguments::None,
+            arguments,
         });
 
         let base_typ: syn::Path = syn::Path {
@@ -63,6 +84,7 @@ impl Parse for Data {
 #[derive(Clone, Debug)]
 pub struct DataEnum {
     pub ident: syn::Ident,
+    pub generics: Generics,
     pub span: Span,
     pub variants: Vec<Variant>,
 }
@@ -76,7 +98,17 @@ impl Parse for DataEnum {
         input.parse::<Token![enum]>()?;
         let ident = input.parse::<syn::Ident>()?;
 
-        input.parse::<syn::Generics>()?;
+        let generic_params: GenericParameters = input.parse()?;
+
+        let lookahead = input.lookahead1();
+
+        let where_clause: Option<syn::WhereClause> = if lookahead.peek(Token![where]) {
+            Some(input.parse()?)
+        } else {
+            None
+        };
+
+        let generics = Generics::new(generic_params, where_clause);
 
         let content;
         braced! {content in input};
@@ -85,6 +117,7 @@ impl Parse for DataEnum {
             content.parse_terminated(Variant::parse, Token![,])?;
 
         Ok(DataEnum {
+            generics,
             span: ident.span(),
             ident,
             variants: variants.into_iter().collect(),
@@ -121,6 +154,7 @@ impl Parse for Variant {
 pub struct DataStruct {
     pub ident: syn::Ident,
     pub span: Span,
+    pub generics: Generics,
     pub fields: Fields,
 }
 impl Parse for DataStruct {
@@ -133,7 +167,17 @@ impl Parse for DataStruct {
         input.parse::<Token![struct]>()?;
         let ident = input.parse::<syn::Ident>()?;
 
-        input.parse::<syn::Generics>()?;
+        let generic_params: GenericParameters = input.parse()?;
+
+        let lookahead = input.lookahead1();
+
+        let where_clause: Option<syn::WhereClause> = if lookahead.peek(Token![where]) {
+            Some(input.parse()?)
+        } else {
+            None
+        };
+
+        let generics = Generics::new(generic_params, where_clause);
 
         let fields: Fields = input.parse()?;
 
@@ -148,6 +192,7 @@ impl Parse for DataStruct {
         }
 
         Ok(DataStruct {
+            generics,
             span: ident.span(),
             ident,
             fields,
@@ -279,6 +324,168 @@ impl Parse for StructField {
             span: input.span(),
             ident,
             typ,
+        })
+    }
+}
+
+/// The generics for a declaration, and any bounds or conditions on them.
+///
+/// This includes generics stored inside angle brackets, as well as conditions on them using where
+/// clauses.
+#[derive(Clone, Debug)]
+pub struct Generics {
+    /// type parameters and their bounds
+    pub type_parameters: BTreeMap<syn::Ident, Vec<syn::TypeParamBound>>,
+
+    /// lifetime parameters and their bounds
+    pub lifetime_parameters: BTreeMap<syn::Lifetime, Vec<syn::Lifetime>>,
+
+    /// constant parameters
+    pub const_parameters: Vec<syn::ConstParam>,
+
+    /// where predicates
+    pub where_predicates: Vec<syn::WherePredicate>,
+}
+
+impl Generics {
+    pub fn new(params: GenericParameters, where_clause: Option<syn::WhereClause>) -> Generics {
+        let mut type_parameters: BTreeMap<_, _> = BTreeMap::new();
+        let mut lifetime_parameters: BTreeMap<_, _> = BTreeMap::new();
+        let mut const_parameters: Vec<_> = Vec::new();
+        let mut where_predicates: Vec<_> = Vec::new();
+        for param in params.params.into_iter() {
+            match param {
+                syn::GenericParam::Lifetime(lifetime_param) => {
+                    let lifetime = lifetime_param.lifetime;
+                    let lifetime_bounds: Vec<_> = lifetime_param.bounds.into_iter().collect();
+                    if lifetime_parameters.contains_key(&lifetime) {
+                        syn::Error::new(lifetime.span(), "Duplicate lifetime parameter")
+                            .to_compile_error();
+                    }
+
+                    lifetime_parameters.insert(lifetime, lifetime_bounds);
+                }
+                syn::GenericParam::Type(type_param) => {
+                    let typ = type_param.ident;
+                    let bounds: Vec<_> = type_param.bounds.into_iter().collect();
+
+                    if type_parameters.contains_key(&typ) {
+                        syn::Error::new(typ.span(), "Duplicate type parameter").to_compile_error();
+                    }
+                    type_parameters.insert(typ, bounds);
+                }
+                syn::GenericParam::Const(const_param) => {
+                    const_parameters.push(const_param);
+                }
+            }
+        }
+
+        if let Some(where_clause) = where_clause {
+            where_predicates.extend(where_clause.predicates);
+        };
+
+        Generics {
+            type_parameters,
+            lifetime_parameters,
+            const_parameters,
+            where_predicates,
+        }
+    }
+
+    /// Returns the generic parameters for the type to use in an impl block.
+    ///
+    /// ```text
+    /// impl<...> MyType<...> where ... {
+    ///      ~~~         ~~~
+    ///            (to go here)
+    /// }
+    /// ```
+    pub fn impl_parameters(&self) -> proc_macro2::TokenStream {
+        let mut token_stream = proc_macro2::TokenStream::new();
+        for (lifetime, bounds) in &self.lifetime_parameters {
+            if bounds.is_empty() {
+                token_stream.extend(quote!(#lifetime,));
+            } else {
+                token_stream.extend(quote! {#lifetime: #(#bounds)+*,});
+            }
+        }
+
+        for (typ, bounds) in &self.type_parameters {
+            if bounds.is_empty() {
+                token_stream.extend(quote!(#typ,));
+            } else {
+                token_stream.extend(quote! {#typ: #(#bounds)+*,});
+            }
+        }
+
+        let const_params = &self.const_parameters;
+        token_stream.extend(quote! {#(#const_params),*});
+
+        token_stream
+    }
+
+    /// Returns the where clause to use in an impl for this type.
+    ///
+    /// ```text
+    /// impl<...> MyType<...> where ... {
+    ///                       ~~~~~~~~~
+    ///                       (this bit)
+    /// M
+    /// ```
+    pub fn impl_type_where_block(&self) -> proc_macro2::TokenStream {
+        let where_predicates = &self.where_predicates;
+        if where_predicates.is_empty() {
+            TokenStream2::new()
+        } else {
+            quote! {
+                where #(#where_predicates),*
+            }
+        }
+    }
+
+    /// Returns the generic parameters of the type without bounds, for use in a type path (e.g.
+    /// referencing this type when declaraing a variable, `let a: Foo<T> = bar;`.)
+    pub fn as_generic_arguments(&self) -> Punctuated<syn::GenericArgument, Token![,]> {
+        let mut punctuated = Punctuated::new();
+        for lifetime in self.lifetime_parameters.keys() {
+            punctuated.push(syn::GenericArgument::Lifetime(lifetime.clone()));
+        }
+
+        for typ in self.type_parameters.keys() {
+            // is Type::Verbatim ok?
+            punctuated.push(syn::GenericArgument::Type(syn::Type::Verbatim(
+                typ.to_token_stream(),
+            )));
+        }
+        for const_param in &self.const_parameters {
+            punctuated.push(syn::GenericArgument::Type(syn::Type::Verbatim(
+                const_param.to_token_stream(),
+            )));
+        }
+
+        punctuated
+    }
+
+    pub fn any_generic_params(&self) -> bool {
+        !self.type_parameters.is_empty()
+            && self.lifetime_parameters.is_empty()
+            && self.const_parameters.is_empty()
+    }
+}
+
+/// The generic parameters for a declaration, stored inside angled brackets.
+#[derive(Clone, Debug)]
+pub struct GenericParameters {
+    params: Vec<syn::GenericParam>,
+}
+
+impl Parse for GenericParameters {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        // just get syn to parse this
+        let generics: syn::Generics = input.parse()?;
+
+        Ok(GenericParameters {
+            params: generics.params.into_iter().collect(),
         })
     }
 }
