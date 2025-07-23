@@ -6,12 +6,11 @@ use std::collections::VecDeque;
 
 use prelude::*;
 use quote::format_ident;
-use syn::parse_macro_input;
+use syn::{parse_macro_input, parse_quote};
 
 #[proc_macro_derive(Uniplate, attributes(uniplate, biplate))]
 pub fn uniplate_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ast::DeriveInput);
-    //eprintln!("{:#?}",input.clone());
     let mut state: ParserState = ParserState::new(input.clone());
 
     let mut out_tokens: Vec<TokenStream2> = Vec::new();
@@ -37,8 +36,26 @@ fn derive_a_uniplate(state: &mut ParserState) -> TokenStream2 {
         ast::Data::DataStruct(x) => _derive_a_struct_uniplate(state, x),
     };
 
+    let mut generics = state.data.generics().clone();
+    for (typ, bounds) in generics.type_parameters.iter_mut() {
+        // Add 'static bounds to all generic type parameters.
+        bounds.push(syn::TypeParamBound::Verbatim(quote!('static)));
+
+        // HACK: I dont like that im having to print out typ and reparse it in as a Type type to
+        // check if we can walk into it or not
+
+        // If we are walking into this type, we also need to add the bound Biplate<From>
+        if state.walk_into_type(&parse_quote!(#typ)) {
+            bounds.push(syn::TypeParamBound::Verbatim(
+                quote!(::uniplate::Biplate<#from>),
+            ));
+        }
+    }
+
+    let impl_bounds = generics.impl_parameters();
+    let where_clause = generics.impl_type_where_block();
     quote! {
-        impl ::uniplate::Uniplate for #from {
+        impl<#impl_bounds> ::uniplate::Uniplate for #from #where_clause {
             fn uniplate(&self) -> (::uniplate::Tree<#from>, Box<dyn Fn(::uniplate::Tree<#from>) -> #from>) {
                 #tokens
             }
@@ -341,7 +358,7 @@ fn derive_a_biplate(state: &mut ParserState) -> TokenStream2 {
     let to = state.to.to_token_stream();
 
     if from.to_string() == to.to_string() {
-        return _derive_identity_biplate(from);
+        return _derive_identity_biplate(state, from);
     }
 
     let tokens: TokenStream2 = match state.data.clone() {
@@ -349,8 +366,27 @@ fn derive_a_biplate(state: &mut ParserState) -> TokenStream2 {
         ast::Data::DataStruct(x) => _derive_a_struct_uniplate(state, x),
     };
 
+    let mut generics = state.data.generics().clone();
+    for (typ, bounds) in generics.type_parameters.iter_mut() {
+        // Add 'static bounds to all generic type parameters.
+        bounds.push(syn::TypeParamBound::Verbatim(quote!('static)));
+
+        // HACK: I dont like that im having to print out typ and reparse it in as a Type type to
+        // check if we can walk into it or not
+
+        // If we are walking into this type, we also need to add the bound T: Biplate<To>
+        if state.walk_into_type(&parse_quote!(#typ)) {
+            bounds.push(syn::TypeParamBound::Verbatim(
+                quote!(::uniplate::Biplate<#to>),
+            ));
+        }
+    }
+
+    let impl_bounds = generics.impl_parameters();
+    let where_clause = generics.impl_type_where_block();
+
     quote! {
-        impl ::uniplate::Biplate<#to> for #from {
+        impl<#impl_bounds> ::uniplate::Biplate<#to> for #from #where_clause{
             fn biplate(&self) -> (::uniplate::Tree<#to>, Box<dyn Fn(::uniplate::Tree<#to>) -> #from>) {
                 #tokens
             }
@@ -358,10 +394,30 @@ fn derive_a_biplate(state: &mut ParserState) -> TokenStream2 {
     }
 }
 
-fn _derive_identity_biplate(typ: TokenStream2) -> TokenStream2 {
+fn _derive_identity_biplate(state: &mut ParserState, from: TokenStream2) -> TokenStream2 {
+    let mut generics = state.data.generics().clone();
+    // Add 'static bounds to all generic type parameters.
+    for (typ, bounds) in generics.type_parameters.iter_mut() {
+        bounds.push(syn::TypeParamBound::Verbatim(quote!('static)));
+
+        // If we are walking into this type for uniplate, we also need to add the bound Biplate<From> here, as the
+        // Uniplate impl, requires it, and the uniplate impl calls this impl.
+        if state
+            .get_uniplate_instance()
+            .walk_into_type(&parse_quote!(#typ))
+        {
+            bounds.push(syn::TypeParamBound::Verbatim(
+                quote!(::uniplate::Biplate<#from>),
+            ));
+        }
+    }
+
+    let impl_bounds = generics.impl_parameters();
+    let where_clause = generics.impl_type_where_block();
+
     quote! {
-        impl ::uniplate::Biplate<#typ> for #typ{
-            fn biplate(&self) -> (::uniplate::Tree<#typ>, Box<dyn Fn(::uniplate::Tree<#typ>) -> #typ>) {
+        impl<#impl_bounds> ::uniplate::Biplate<#from> for #from #where_clause{
+            fn biplate(&self) -> (::uniplate::Tree<#from>, Box<dyn Fn(::uniplate::Tree<#from>) -> #from>) {
                 let val = self.clone();
                 (::uniplate::Tree::One(val.clone()),Box::new(move |x| {
                     let ::uniplate::Tree::One(x) = x else {todo!()};

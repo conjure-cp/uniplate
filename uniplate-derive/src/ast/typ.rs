@@ -91,7 +91,10 @@ impl Parse for Type {
                     "Biplate: expected type argument here",
                 ));
             };
+            // remove box from the base and wrapper paths, as we store that a type is boxed
+            // seperately.
             base_path = typ2.path.clone();
+            wrapper_path = Some(base_path.clone());
 
             any_args = false;
         }
@@ -145,7 +148,6 @@ impl Parse for Type {
                 box_type = new_box_type;
 
                 wrapper_path = Some(base_path.clone());
-                any_args = false;
             }
         }
 
