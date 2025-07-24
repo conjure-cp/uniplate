@@ -7,7 +7,7 @@ use uniplate::Uniplate;
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[uniplate()]
-#[biplate(to=String,walk_into=[Expr])]
+#[biplate(to=String)]
 enum Stmt {
     Nothing,
     Assign(String, Expr),

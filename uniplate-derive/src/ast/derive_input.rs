@@ -3,8 +3,6 @@
 
 use std::borrow::Borrow;
 
-use syn::bracketed;
-
 use crate::prelude::*;
 
 #[derive(Clone, Debug)]
@@ -83,74 +81,26 @@ impl InstanceMeta {
 
         Ok(instance_metadata)
     }
-
-    /// Checks if a type can be walked into or not
-    pub fn walk_into_type(&self, typ: &ast::Type) -> bool {
-        let walk_into = match &self {
-            InstanceMeta::Uniplate(u) => &u.walk_into,
-            InstanceMeta::Biplate(b) => &b.walk_into,
-        };
-
-        for typ2 in walk_into {
-            if typ.base_typ() == typ2.base_typ() {
-                return true;
-            }
-        }
-        false
-    }
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct UniplateInstanceMeta {
-    walk_into: Vec<ast::Type>,
-}
+pub struct UniplateInstanceMeta {}
 
 impl InstanceMetaKind for UniplateInstanceMeta {
     fn from_attribute(attr: syn::Attribute) -> syn::Result<InstanceMeta> {
-        let mut walk_into: Vec<ast::Type> = Vec::new();
-        attr.parse_nested_meta(|meta| {
-            // #[uniplate(walk_into=(A,B,C))]
-            if meta.path.is_ident("walk_into") {
-                meta.input.parse::<Token![=]>()?;
-                let content;
-                bracketed!(content in meta.input);
-
-                let typs: Punctuated<ast::Type, Token![,]> =
-                    content.call(Punctuated::parse_terminated)?;
-                walk_into.extend(typs.into_iter());
-                return Ok(());
-            };
-
-            Err(meta.error("unrecognized property"))
-        })?;
-
-        Ok(InstanceMeta::Uniplate(UniplateInstanceMeta { walk_into }))
+        Ok(InstanceMeta::Uniplate(UniplateInstanceMeta {}))
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct BiplateInstanceMeta {
     pub to: ast::Type,
-    pub walk_into: Vec<ast::Type>,
 }
 
 impl InstanceMetaKind for BiplateInstanceMeta {
     fn from_attribute(attr: syn::Attribute) -> syn::Result<InstanceMeta> {
-        let mut walk_into: Vec<ast::Type> = Vec::new();
         let mut to: Option<ast::Type> = None;
         attr.parse_nested_meta(|meta| {
-            // #[biplate(walk_into=(A,B,C))]
-            if meta.path.is_ident("walk_into") {
-                meta.input.parse::<Token![=]>()?;
-                let content;
-                bracketed!(content in meta.input);
-
-                let typs: Punctuated<ast::Type, Token![,]> =
-                    content.call(Punctuated::parse_terminated)?;
-                walk_into.extend(typs.into_iter());
-                return Ok(());
-            }
-
             // #[biplate(to=A)]
             if meta.path.is_ident("to") {
                 if to.is_some() {
@@ -168,6 +118,6 @@ impl InstanceMetaKind for BiplateInstanceMeta {
             return Err(syn::Error::new(attr.span(), "no to type given"));
         };
 
-        Ok(InstanceMeta::Biplate(BiplateInstanceMeta { to, walk_into }))
+        Ok(InstanceMeta::Biplate(BiplateInstanceMeta { to }))
     }
 }

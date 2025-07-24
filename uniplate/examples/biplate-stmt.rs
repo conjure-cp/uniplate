@@ -5,10 +5,10 @@ use uniplate::{Biplate, Uniplate};
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[biplate(to=Expr)]
-#[biplate(to=i32,walk_into=[Expr,Option<Expr>])]
+#[biplate(to=i32)]
+#[biplate(to=String)]
 #[biplate(to=Option<Expr>)]
-#[biplate(to=String,walk_into=[Expr])]
-#[uniplate(walk_into=[Expr])]
+#[uniplate()]
 enum Stmt {
     Assign(String, Option<Expr>),
     Sequence(Vec<Stmt>),
@@ -17,7 +17,7 @@ enum Stmt {
 }
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
-#[uniplate(walk_into=[Stmt])]
+#[uniplate()]
 #[biplate(to=String)]
 #[biplate(to=Option<Expr>)]
 #[biplate(to=Stmt)]

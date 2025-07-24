@@ -8,7 +8,7 @@ use uniplate::Biplate;
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[uniplate()]
-#[biplate(to=Vec<Stmt>,walk_into=[Expr])]
+#[biplate(to=Vec<Stmt>)]
 enum Stmt {
     Nothing,
     Assign(String, Expr),

@@ -5,8 +5,7 @@ use crate::Uniplate;
 // Stmt and Expr to demonstrate and test multitype traversals.
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[biplate(to=Expr)]
-#[biplate(to=String,walk_into=[Expr])]
-#[uniplate(walk_into=[Expr])]
+#[biplate(to=String,)]
 pub enum Stmt {
     Assign(String, Expr),
     Sequence(Vec<Stmt>),
@@ -15,7 +14,6 @@ pub enum Stmt {
 }
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
-#[uniplate(walk_into=[Stmt])]
 #[biplate(to=String)]
 #[biplate(to=Stmt)]
 pub enum Expr {
