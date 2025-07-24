@@ -92,8 +92,6 @@ impl InstanceMeta {
         };
 
         for typ2 in walk_into {
-            let typ1_basetyp = typ.base_typ();
-            let typ2_basetyp = typ2.base_typ();
             if typ.base_typ() == typ2.base_typ() {
                 return true;
             }
