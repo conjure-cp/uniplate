@@ -124,7 +124,7 @@ enum Expr {
 
 ## Multi-type traversals
 
-Uniplate also supports trees with multiple recursive types. Lets extend our
+Uniplate also supports trees with multiple nested types. Lets extend our
 calculator language to include statements as well as expressions:
 
 ```rust
@@ -154,8 +154,7 @@ variable names used by child expressions:
 use uniplate::{Uniplate,Biplate};
 use std::collections::VecDeque;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
-// look for strings inside expressions as well as statements 
-#[biplate(to=String,walk_into=[Expr])]
+#[biplate(to=String)]
 #[biplate(to=Expr)]
 #[uniplate()]
 enum Stmt {
@@ -183,10 +182,6 @@ fn vars_names(stmt: &Stmt) -> Vec<String>{
     names.into()
 }
 ```
-
-The types given to the `walk_into` argument are recursed through by uniplate.
-Both `#[uniplate]` and `#[biplate]` support the `walk_into` parameter.
-
 
 # Bibliography
 

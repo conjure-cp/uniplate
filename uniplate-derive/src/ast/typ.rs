@@ -27,6 +27,7 @@ pub enum Type {
 }
 
 impl Type {
+    #[allow(dead_code)]
     pub fn base_typ(&self) -> Option<syn::Path> {
         match self {
             Type::BoxedPlateable(x) => Some(x.base_typ()),

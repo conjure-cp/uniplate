@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 
 use prelude::*;
 use quote::format_ident;
-use syn::{parse_macro_input, parse_quote};
+use syn::parse_macro_input;
 
 #[proc_macro_derive(Uniplate, attributes(uniplate, biplate))]
 pub fn uniplate_derive(input: TokenStream) -> TokenStream {
@@ -37,19 +37,9 @@ fn derive_a_uniplate(state: &mut ParserState) -> TokenStream2 {
     };
 
     let mut generics = state.data.generics().clone();
-    for (typ, bounds) in generics.type_parameters.iter_mut() {
+    for (_, bounds) in generics.type_parameters.iter_mut() {
         // Add 'static bounds to all generic type parameters.
         bounds.push(syn::TypeParamBound::Verbatim(quote!('static)));
-
-        // HACK: I dont like that im having to print out typ and reparse it in as a Type type to
-        // check if we can walk into it or not
-
-        // If we are walking into this type, we also need to add the bound Biplate<From>
-        if state.walk_into_type(&parse_quote!(#typ)) {
-            bounds.push(syn::TypeParamBound::Verbatim(
-                quote!(::uniplate::Biplate<#from>),
-            ));
-        }
     }
 
     let impl_bounds = generics.impl_parameters();
@@ -174,31 +164,22 @@ fn _derive_for_field_enum(
 
     let to_t = state.to.clone().expect("").to_token_stream();
 
-    if !state.walk_into_type(typ) {
-        let copy_ident = format_ident!("_{}_copy", mem);
-        quote! {
-            let #copy_ident = #match_ident.clone();
+    match typ {
+        // dereference the field
+        ast::Type::BoxedPlateable(_) => {
+            quote! {
+                let (#children_ident,#ctx_ident) = ::uniplate::spez::try_biplate_to!((**#match_ident).clone(), #to_t);
+            }
         }
-    } else {
-        match typ {
-            // dereference the field
-            ast::Type::BoxedPlateable(x) => {
-                let from_t = x.inner_typ.to_token_stream();
-                quote! {
-                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(#match_ident.borrow());
-                }
+        ast::Type::Plateable(_) => {
+            quote! {
+                let (#children_ident,#ctx_ident) = ::uniplate::spez::try_biplate_to!(#match_ident.clone(), #to_t);
             }
-            ast::Type::Plateable(x) => {
-                let from_t = x.to_token_stream();
-                quote! {
-                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(#match_ident);
-                }
-            }
-            ast::Type::Unplateable => {
-                let copy_ident = format_ident!("_{}_copy", mem);
-                quote! {
-                    let #copy_ident = #match_ident.clone();
-                }
+        }
+        ast::Type::Unplateable => {
+            let copy_ident = format_ident!("_{}_copy", mem);
+            quote! {
+                let #copy_ident = #match_ident.clone();
             }
         }
     }
@@ -214,43 +195,30 @@ fn _derive_for_field_struct(
 
     let to_t = state.to.clone().expect("").to_token_stream();
 
-    if !state.walk_into_type(typ) {
-        let copy_ident = format_ident!("_{}_copy", mem);
-        quote! {
-            let #copy_ident = self.#mem.clone();
+    match typ {
+        // dereference the field
+        ast::Type::BoxedPlateable(_) => {
+            quote! {
+                let (#children_ident,#ctx_ident) = ::uniplate::spez::try_biplate_to!((*self.#mem).clone(), #to_t);
+            }
         }
-    } else {
-        match typ {
-            // dereference the field
-            ast::Type::BoxedPlateable(x) => {
-                let from_t = x.inner_typ.to_token_stream();
-                quote! {
-                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(self.#mem.borrow());
-                }
+        ast::Type::Plateable(_) => {
+            quote! {
+                let (#children_ident,#ctx_ident) = ::uniplate::try_biplate_to!(self.#mem.clone(), #to_t);
             }
-            ast::Type::Plateable(x) => {
-                let from_t = x.to_token_stream();
-                quote! {
-                    let (#children_ident,#ctx_ident) = <#from_t as ::uniplate::Biplate<#to_t>>::biplate(&self.#mem);
-                }
-            }
-            ast::Type::Unplateable => {
-                let copy_ident = format_ident!("_{}_copy", mem);
-                quote! {
-                    let #copy_ident = self.#mem.clone();
-                }
+        }
+        ast::Type::Unplateable => {
+            let copy_ident = format_ident!("_{}_copy", mem);
+            quote! {
+                let #copy_ident = self.#mem.clone();
             }
         }
     }
 }
 
-fn _derive_children(state: &mut ParserState, fields: &ast::Fields) -> TokenStream2 {
+fn _derive_children(_state: &mut ParserState, fields: &ast::Fields) -> TokenStream2 {
     let mut subtrees: VecDeque<TokenStream2> = VecDeque::new();
     for (mem, typ) in fields.defs() {
-        if !state.walk_into_type(typ) {
-            subtrees.push_back(quote!(::uniplate::Tree::Zero));
-            continue;
-        }
         subtrees.push_back(match typ {
             ast::Type::BoxedPlateable(_) => {
                 let children_ident = format_ident!("_{}_children", mem);
@@ -281,28 +249,21 @@ fn _derive_ctx(
     let field_ctxs: Vec<_> = fields
         .defs()
         .enumerate()
-        .map(|(i, (mem, typ))| {
-            if !state.walk_into_type(typ) {
-                let ident = format_ident!("_{}_copy", mem);
-                quote! {#ident.clone()}
-            } else {
-                match typ {
-                    ast::Type::Unplateable => {
-                        let copy_ident = format_ident!("_{}_copy", mem);
-                        quote! {#copy_ident.clone()}
-                    }
+        .map(|(i, (mem, typ))| match typ {
+            ast::Type::Unplateable => {
+                let copy_ident = format_ident!("_{}_copy", mem);
+                quote! {#copy_ident.clone()}
+            }
 
-                    ast::Type::Plateable(_) => {
-                        let ctx_ident = format_ident!("_{}_ctx", mem);
-                        quote! {#ctx_ident(x[#i].clone())}
-                    }
+            ast::Type::Plateable(_) => {
+                let ctx_ident = format_ident!("_{}_ctx", mem);
+                quote! {#ctx_ident(x[#i].clone())}
+            }
 
-                    ast::Type::BoxedPlateable(x) => {
-                        let boxed_typ = x.box_typ.to_token_stream();
-                        let ctx_ident = format_ident!("_{}_ctx", mem);
-                        quote! {#boxed_typ::new(#ctx_ident(x[#i].clone()))}
-                    }
-                }
+            ast::Type::BoxedPlateable(x) => {
+                let boxed_typ = x.box_typ.to_token_stream();
+                let ctx_ident = format_ident!("_{}_ctx", mem);
+                quote! {#boxed_typ::new(#ctx_ident(x[#i].clone()))}
             }
         })
         .collect();
@@ -371,14 +332,9 @@ fn derive_a_biplate(state: &mut ParserState) -> TokenStream2 {
         // Add 'static bounds to all generic type parameters.
         bounds.push(syn::TypeParamBound::Verbatim(quote!('static)));
 
-        // HACK: I dont like that im having to print out typ and reparse it in as a Type type to
-        // check if we can walk into it or not
-
-        // If we are walking into this type, we also need to add the bound T: Biplate<To>
-        if state.walk_into_type(&parse_quote!(#typ)) {
-            bounds.push(syn::TypeParamBound::Verbatim(
-                quote!(::uniplate::Biplate<#to>),
-            ));
+        // If we are deriving Biplate<T>, T must be Uniplate
+        if to.to_string() == typ.to_token_stream().to_string() {
+            bounds.push(syn::TypeParamBound::Verbatim(quote!(Uniplate)));
         }
     }
 
@@ -397,19 +353,8 @@ fn derive_a_biplate(state: &mut ParserState) -> TokenStream2 {
 fn _derive_identity_biplate(state: &mut ParserState, from: TokenStream2) -> TokenStream2 {
     let mut generics = state.data.generics().clone();
     // Add 'static bounds to all generic type parameters.
-    for (typ, bounds) in generics.type_parameters.iter_mut() {
+    for (_, bounds) in generics.type_parameters.iter_mut() {
         bounds.push(syn::TypeParamBound::Verbatim(quote!('static)));
-
-        // If we are walking into this type for uniplate, we also need to add the bound Biplate<From> here, as the
-        // Uniplate impl, requires it, and the uniplate impl calls this impl.
-        if state
-            .get_uniplate_instance()
-            .walk_into_type(&parse_quote!(#typ))
-        {
-            bounds.push(syn::TypeParamBound::Verbatim(
-                quote!(::uniplate::Biplate<#from>),
-            ));
-        }
     }
 
     let impl_bounds = generics.impl_parameters();

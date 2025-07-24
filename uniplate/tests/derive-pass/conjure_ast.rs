@@ -9,7 +9,7 @@ use uniplate::Uniplate;
 #[derive(Clone, Debug, PartialEq, Eq, Uniplate)]
 #[uniplate()]
 #[biplate(to=Constant)]
-#[biplate(to=String,walk_into=[Name])]
+#[biplate(to=String)]
 enum Expression {
     Nothing,
     Bubble(Metadata, Box<Expression>, Box<Expression>),

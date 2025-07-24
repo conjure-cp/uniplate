@@ -5,7 +5,7 @@
 //
 use uniplate::Uniplate;
 #[derive(Eq, PartialEq, Uniplate, Clone)]
-#[uniplate(walk_into=[T])]
+#[uniplate()]
 enum BinaryTree<T: PartialEq + Eq>
 where
     T: Ord,

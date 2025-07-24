@@ -96,7 +96,7 @@ fn vars_names(expr: &Expr) -> Vec<String>{
 ```
 
 
-Uniplate also supports trees with multiple recursive types. Lets extend our
+Uniplate also supports trees with multiple nested types. Lets extend our
 calculator language to include statements as well as expressions:
 
 ```rust
@@ -121,16 +121,14 @@ enum Stmt {
 
 When looking for variable names in a given statement, we want to identify not
 only the variable names directly used inside the statement, but also any
-variable names used by child expressions.
-
+variable names used by child expressions:
 
 ```rust
 use std::collections::VecDeque;
 use uniplate::{Uniplate,Biplate};
 use uniplate::Uniplate;
 #[derive(Clone,PartialEq,Eq,Debug,Uniplate)]
-// look for strings inside expressions as well as statements 
-#[biplate(to=String,walk_into=[Expr])]
+#[biplate(to=String)]
 #[biplate(to=Expr)]
 #[uniplate()]
 enum Stmt {
@@ -160,8 +158,6 @@ fn vars_names(stmt: &Stmt) -> Vec<String>{
 
 ```
 
-Despite having to recursively look through multiple types, this operation is
-no harder to write!
 
 
 ## Acknowledgements

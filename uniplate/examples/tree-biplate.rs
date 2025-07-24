@@ -4,34 +4,29 @@
 use std::collections::VecDeque;
 
 // Using a mix of where clauses and type parameter bounds, to show that either works.
+//
+// Note that Uniplate does not walk into T here.
 use uniplate::{Biplate, Uniplate};
 #[derive(Eq, PartialEq, Uniplate, Clone)]
-#[biplate(to=String)]
+#[biplate(to=T)]
 enum BinaryTree<T: PartialEq + Eq>
 where
+    T: Ord,
     T: Clone,
-    T: Biplate<String>, // we must require this for biplate to look inside T for strings
 {
     Leaf(T),
     Branch(T, Box<BinaryTree<T>>, Box<BinaryTree<T>>),
 }
 
-#[derive(Eq, PartialEq, Clone, Uniplate)]
-#[biplate(to=String)]
-enum Foo {
-    A(String),
-    B(i32),
-}
-
 pub fn main() {
-    let tree1: BinaryTree<Foo> = BinaryTree::Leaf(Foo::A("Hello".into()));
-    let tree2: BinaryTree<Foo> = BinaryTree::Branch(
-        Foo::A("World".into()),
+    let tree1: BinaryTree<String> = BinaryTree::Leaf("Hello".into());
+    let tree2: BinaryTree<String> = BinaryTree::Branch(
+        "World".into(),
         Box::new(tree1.clone()),
         Box::new(tree1.clone()),
     );
-    let tree3: BinaryTree<Foo> = BinaryTree::Branch(
-        Foo::A("Foo".into()),
+    let tree3: BinaryTree<String> = BinaryTree::Branch(
+        "Foo".into(),
         Box::new(tree1.clone()),
         Box::new(tree2.clone()),
     );

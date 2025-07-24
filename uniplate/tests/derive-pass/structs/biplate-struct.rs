@@ -3,16 +3,16 @@ use uniplate::{Uniplate, Biplate};
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
 #[biplate(to=B)]
-#[biplate(to=i32,walk_into=[B])]
-#[uniplate(walk_into=[B])]
+#[biplate(to=i32,)]
+#[uniplate()]
 struct A {
     value: i32,
     children: Vec<B>,
 }
 
 #[derive(Eq, PartialEq, Clone, Debug, Uniplate)]
-#[uniplate(walk_into=[A])]
-#[biplate(to=i32, walk_into=[A])]
+#[uniplate()]
+#[biplate(to=i32)]
 #[biplate(to=A)]
 struct B {
     value: i32,
