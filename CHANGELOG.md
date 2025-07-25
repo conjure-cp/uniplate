@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0](https://github.com/conjure-cp/uniplate/compare/v0.3.2...v0.4.0) - 2025-07-25
 
+### Major Changes
+
+* The `walk into` property has been removed from the derive macro. The types to
+  walk into when deriving a biplate instance are now determined by whether the
+  type implements biplate or not. That is, the derived instance `Biplate<T> for
+  U` will walk into fields of type `V` looking for children of type `T` if `V`
+  implements `Biplate<T>`.
+
+  Remove any `walk_into` fields from any `#[biplate]` and `#[uniplate]`
+  attributes.
+
+* `Uniplate` and `Biplate` functions that used to take functions as `Arc<dyn
+  Fn..>` objects now take a `&impl Fn()`.
+
+  For example, `x.transform_bi(Arc::new(|x| x+1))` is now `x.transform_bi(&|x| x+1)`.
+
+* The derive macro now supports enum structs and type parameters (lifetimes are
+  not yet supported).
+
+
 ### Added
 
 - *(derive)* [**breaking**] automatically determine types to walk into
@@ -20,7 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 
 - move traits into seperate files
-- Update uniplate-derive/src/ast/derive_input.rs
 
 ## [0.3.2](https://github.com/conjure-cp/uniplate/compare/v0.3.1...v0.3.2) - 2025-07-21
 
