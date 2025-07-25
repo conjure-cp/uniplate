@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/conjure-cp/uniplate/compare/uniplate-derive-v0.3.2...uniplate-derive-v0.4.0) - 2025-07-25
+
+### Added
+
+- *(derive)* [**breaking**] automatically determine types to walk into
+- *(derive)* support simple generic type parameters
+- *(derive)* support enum struct variants
+
+### Other
+
+- Update uniplate-derive/src/ast/derive_input.rs
+
 ## [0.3.1](https://github.com/conjure-cp/uniplate/compare/uniplate-derive-v0.3.0...uniplate-derive-v0.3.1) - 2025-07-21
 
 ### Other
