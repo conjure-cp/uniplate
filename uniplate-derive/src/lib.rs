@@ -149,7 +149,7 @@ fn _derive_a_struct_uniplate(state: &mut ParserState, data: ast::DataStruct) -> 
 
 fn _derive_for_field_enum(
     state: &mut ParserState,
-    typ: &ast::Type,
+    field_type: &ast::Type,
     mem: &syn::Member,
 ) -> TokenStream2 {
     // the identifier used in the match clause.
@@ -164,22 +164,15 @@ fn _derive_for_field_enum(
 
     let to_t = state.to.clone().expect("").to_token_stream();
 
-    match typ {
-        // dereference the field
-        ast::Type::BoxedPlateable(_) => {
+    match field_type {
+        ast::Type::Box(_) => {
             quote! {
                 let (#children_ident,#ctx_ident) = ::uniplate::spez::try_biplate_to!((**#match_ident).clone(), #to_t);
             }
         }
-        ast::Type::Plateable(_) => {
+        ast::Type::Basic(_) => {
             quote! {
                 let (#children_ident,#ctx_ident) = ::uniplate::spez::try_biplate_to!(#match_ident.clone(), #to_t);
-            }
-        }
-        ast::Type::Unplateable => {
-            let copy_ident = format_ident!("_{}_copy", mem);
-            quote! {
-                let #copy_ident = #match_ident.clone();
             }
         }
     }
@@ -187,7 +180,7 @@ fn _derive_for_field_enum(
 
 fn _derive_for_field_struct(
     state: &mut ParserState,
-    typ: &ast::Type,
+    field_type: &ast::Type,
     mem: syn::Member,
 ) -> TokenStream2 {
     let children_ident = format_ident!("_{}_children", mem);
@@ -195,22 +188,16 @@ fn _derive_for_field_struct(
 
     let to_t = state.to.clone().expect("").to_token_stream();
 
-    match typ {
+    match field_type {
         // dereference the field
-        ast::Type::BoxedPlateable(_) => {
+        ast::Type::Box(_) => {
             quote! {
                 let (#children_ident,#ctx_ident) = ::uniplate::spez::try_biplate_to!((*self.#mem).clone(), #to_t);
             }
         }
-        ast::Type::Plateable(_) => {
+        ast::Type::Basic(_) => {
             quote! {
                 let (#children_ident,#ctx_ident) = ::uniplate::try_biplate_to!(self.#mem.clone(), #to_t);
-            }
-        }
-        ast::Type::Unplateable => {
-            let copy_ident = format_ident!("_{}_copy", mem);
-            quote! {
-                let #copy_ident = self.#mem.clone();
             }
         }
     }
@@ -218,17 +205,16 @@ fn _derive_for_field_struct(
 
 fn _derive_children(_state: &mut ParserState, fields: &ast::Fields) -> TokenStream2 {
     let mut subtrees: VecDeque<TokenStream2> = VecDeque::new();
-    for (mem, typ) in fields.defs() {
-        subtrees.push_back(match typ {
-            ast::Type::BoxedPlateable(_) => {
-                let children_ident = format_ident!("_{}_children", mem);
+    for (member, field_type) in fields.defs() {
+        subtrees.push_back(match field_type {
+            ast::Type::Box(_) => {
+                let children_ident = format_ident!("_{}_children", member);
                 quote!(#children_ident)
             }
-            ast::Type::Plateable(_) => {
-                let children_ident = format_ident!("_{}_children", mem);
+            ast::Type::Basic(_) => {
+                let children_ident = format_ident!("_{}_children", member);
                 quote!(#children_ident)
             }
-            ast::Type::Unplateable => quote!(::uniplate::Tree::Zero),
         });
     }
 
@@ -250,20 +236,14 @@ fn _derive_ctx(
         .defs()
         .enumerate()
         .map(|(i, (mem, typ))| match typ {
-            ast::Type::Unplateable => {
-                let copy_ident = format_ident!("_{}_copy", mem);
-                quote! {#copy_ident.clone()}
-            }
-
-            ast::Type::Plateable(_) => {
+            ast::Type::Basic(_) => {
                 let ctx_ident = format_ident!("_{}_ctx", mem);
                 quote! {#ctx_ident(x[#i].clone())}
             }
 
-            ast::Type::BoxedPlateable(x) => {
-                let boxed_typ = x.box_typ.to_token_stream();
+            ast::Type::Box(_) => {
                 let ctx_ident = format_ident!("_{}_ctx", mem);
-                quote! {#boxed_typ::new(#ctx_ident(x[#i].clone()))}
+                quote! {Box::new(#ctx_ident(x[#i].clone()))}
             }
         })
         .collect();
@@ -315,7 +295,7 @@ fn _derive_ctx(
 }
 
 fn derive_a_biplate(state: &mut ParserState) -> TokenStream2 {
-    let from = state.from.base_typ.to_token_stream();
+    let from = state.from.to_token_stream();
     let to = state.to.to_token_stream();
 
     if from.to_string() == to.to_string() {

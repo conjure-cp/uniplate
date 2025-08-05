@@ -5,6 +5,7 @@ use syn::token;
 
 use crate::prelude::*;
 
+/// A datatype we are deriving uniplate on
 #[derive(Clone, Debug)]
 pub enum Data {
     DataEnum(DataEnum),
@@ -35,7 +36,13 @@ impl Data {
     }
 }
 
-impl From<Data> for ast::PlateableType {
+impl From<Data> for ast::Type {
+    fn from(value: Data) -> Self {
+        ast::Type::Basic(value.into())
+    }
+}
+
+impl From<Data> for ast::BasicType {
     fn from(val: Data) -> Self {
         let mut typ_segments: Punctuated<syn::PathSegment, syn::token::PathSep> = Punctuated::new();
 
@@ -55,15 +62,13 @@ impl From<Data> for ast::PlateableType {
             arguments,
         });
 
-        let base_typ: syn::Path = syn::Path {
-            leading_colon: None,
-            segments: typ_segments,
-        };
-
-        ast::PlateableType {
-            base_typ,
-            wrapper_typ: None,
-        }
+        ast::BasicType::new(syn::Type::Path(syn::TypePath {
+            qself: None,
+            path: syn::Path {
+                leading_colon: None,
+                segments: typ_segments,
+            },
+        }))
     }
 }
 
