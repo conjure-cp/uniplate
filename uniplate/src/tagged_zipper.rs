@@ -7,7 +7,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{zipper::Zipper, Uniplate};
+use crate::{Uniplate, zipper::Zipper};
 
 struct TagNode<D> {
     data: D,

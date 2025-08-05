@@ -10,13 +10,13 @@
 
 use std::collections::VecDeque;
 
-use crate::derive_iter;
-use crate::derive_unplateable;
-use crate::try_biplate_to;
 use crate::Biplate;
 use crate::Tree;
 use crate::Tree::*;
 use crate::Uniplate;
+use crate::derive_iter;
+use crate::derive_unplateable;
+use crate::try_biplate_to;
 
 // `std` base types {{{
 derive_unplateable!(i8);
