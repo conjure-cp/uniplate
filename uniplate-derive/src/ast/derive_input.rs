@@ -94,7 +94,7 @@ impl InstanceMetaKind for UniplateInstanceMeta {
 
 #[derive(Clone, Debug)]
 pub struct BiplateInstanceMeta {
-    pub to: ast::BasicType,
+    pub to: ast::Type,
 }
 
 impl InstanceMetaKind for BiplateInstanceMeta {
@@ -118,10 +118,6 @@ impl InstanceMetaKind for BiplateInstanceMeta {
             return Err(syn::Error::new(attr.span(), "no to type given"));
         };
 
-        let to: ast::BasicType = match to {
-            ast::Type::Box(basic_type) => basic_type,
-            ast::Type::Basic(basic_type) => basic_type,
-        };
         Ok(InstanceMeta::Biplate(BiplateInstanceMeta { to }))
     }
 }

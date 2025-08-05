@@ -10,17 +10,23 @@ lazy_static! {
 /// A type
 #[derive(Clone, Debug)]
 pub enum Type {
-    /// A type inside a box
-    Box(BasicType),
+    /// A boxed basic type
+    BoxedBasic(BasicType),
 
-    /// A type that is not boxed
+    /// A basic type
     Basic(BasicType),
+
+    /// A tuple type
+    Tuple(TupleType),
+
+    /// A boxed tuple type
+    BoxedTuple(TupleType),
 }
 
 impl Parse for Type {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let syn_typ: syn::Type = input.parse()?;
-        match &syn_typ {
+        match syn_typ {
             syn::Type::Array(_) => {
                 Err(input.error("uniplate_derive: array types are not supported."))
             }
@@ -57,13 +63,11 @@ impl Parse for Type {
             syn::Type::TraitObject(_) => {
                 Err(input.error("uniplate_derive: trait object types are not supported."))
             }
-            syn::Type::Tuple(_) => {
-                Err(input.error("uniplate_derive: tuple types are not yet supported."))
-            }
+            syn::Type::Tuple(tuple_type) => Ok(Type::Tuple(TupleType::from_syn(tuple_type)?)),
             syn::Type::Verbatim(_) => {
                 Err(input.error("uniplate_derive: verbatim types are not yet supported."))
             }
-            syn::Type::Path(type_path) => {
+            syn::Type::Path(ref type_path) => {
                 // Is this type boxed?
 
                 // To check whether this type is boxed: store the type without any parameters, and
@@ -78,15 +82,16 @@ impl Parse for Type {
                     if let syn::PathArguments::AngleBracketed(ref args) =
                         type_segments.last().unwrap().arguments
                         && args.args.len() == 1
-                        && let syn::GenericArgument::Type(inner_typ) = args.args.last().unwrap()
+                        && let syn::GenericArgument::Type(inner_type) = args.args.last().unwrap()
                     {
-                        let Type::Basic(inner_typ) = parse_quote!(#inner_typ) else {
-                            return Err(
-                                input.error("uniplate_derive: nested boxes are not supported.")
-                            );
-                        };
-
-                        Ok(Type::Box(inner_typ))
+                        let inner_type: Type = parse_quote!(#inner_type);
+                        match inner_type {
+                            Type::Basic(basic_type) => Ok(Type::BoxedBasic(basic_type)),
+                            Type::Tuple(tuple_type) => Ok(Type::BoxedTuple(tuple_type)),
+                            Type::BoxedBasic(_) | Type::BoxedTuple(_) => {
+                                Err(input.error("uniplate_derive: nested boxes are not supported."))
+                            }
+                        }
                     } else {
                         Err(input.error("uniplate_derive: invalid box type"))
                     }
@@ -103,17 +108,23 @@ impl Parse for Type {
 impl ToTokens for Type {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         match self {
-            Type::Box(basic_type) => {
+            Type::BoxedBasic(basic_type) => {
                 tokens.extend(quote!(Box<#basic_type>));
             }
             Type::Basic(basic_type) => {
                 basic_type.to_tokens(tokens);
             }
+            Type::Tuple(tuple_type) => {
+                tuple_type.to_tokens(tokens);
+            }
+            Type::BoxedTuple(tuple_type) => {
+                tokens.extend(quote!(Box<#tuple_type>));
+            }
         }
     }
 }
 
-/// A type that is not boxed
+/// A basic type
 #[derive(Clone, Debug)]
 pub struct BasicType {
     pub typ: syn::Type,
@@ -128,5 +139,45 @@ impl BasicType {
 impl ToTokens for BasicType {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         self.typ.to_tokens(tokens);
+    }
+}
+
+/// A tuple type
+#[derive(Clone, Debug)]
+pub struct TupleType {
+    /// the types of the tuple fields
+    ///
+    /// for now, these must be unboxed basic types, but that restriction may be lifted later.
+    pub fields: Vec<BasicType>,
+    /// the number of types this tuple has
+    pub n: usize,
+}
+
+impl TupleType {
+    pub fn from_syn(typ: syn::TypeTuple) -> Result<Self, syn::Error> {
+        let mut fields = vec![];
+        for syn_field_type in typ.elems.into_iter() {
+            let field_type: Type = parse_quote!(#syn_field_type);
+            let Type::Basic(field_type) = field_type else {
+                return Err(syn::Error::new(
+                    syn_field_type.span(),
+                    "uniplate_derive: expect tuple field to be an unboxed basic type",
+                ));
+            };
+            fields.push(field_type);
+        }
+
+        Ok(TupleType {
+            n: fields.len(),
+            fields,
+        })
+    }
+}
+impl ToTokens for TupleType {
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        let fields = &self.fields;
+        tokens.extend(quote! {
+            (#(#fields),*)
+        });
     }
 }

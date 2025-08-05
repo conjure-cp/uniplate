@@ -7,10 +7,10 @@ use std::collections::VecDeque;
 #[derive(Debug)]
 pub struct ParserState {
     /// The type we are deriving Biplate on.
-    pub from: ast::BasicType,
+    pub from: ast::Type,
 
     /// The current target type.
-    pub to: Option<ast::BasicType>,
+    pub to: Option<ast::Type>,
 
     /// The data structure itself.
     pub data: ast::Data,
@@ -28,7 +28,7 @@ pub struct ParserState {
 impl ParserState {
     pub fn new(inp: ast::DeriveInput) -> Self {
         let data = inp.data;
-        let from: ast::BasicType = data.clone().into();
+        let from: ast::Type = data.clone().into();
 
         let mut instances_to_generate: VecDeque<ast::InstanceMeta> = inp.instance_metadata.into();
 
