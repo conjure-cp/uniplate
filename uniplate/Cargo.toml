@@ -27,7 +27,7 @@ uniplate-derive = { version = "0.4.1", path = "../uniplate-derive" }
 trybuild = "1.0.105"
 proptest = "1.7.0"
 proptest-derive = "0.6.0"
-criterion = "0.6.0"
+criterion = "0.7.0"
 
 [features]
 unstable = []
