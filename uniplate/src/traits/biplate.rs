@@ -1,5 +1,5 @@
 use super::holes::HolesIterBi;
-use super::{context::ContextIterBi, Uniplate};
+use super::{Uniplate, context::ContextIterBi};
 
 use std::collections::VecDeque;
 
@@ -118,7 +118,7 @@ where
 mod tests {
     use proptest::prelude::*;
 
-    use crate::test_common::paper::{proptest_stmts, Expr, Stmt};
+    use crate::test_common::paper::{Expr, Stmt, proptest_stmts};
 
     use super::*;
     proptest! {
