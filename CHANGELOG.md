@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2](https://github.com/conjure-cp/uniplate/compare/v0.4.1...v0.4.2) - 2025-08-05
+
+### Added
+
+- *(derive)* support tuples in derive macro
+
+### Other
+
+- run cargo fmt
+- split spez into different files
+- update edition to 2024
+- *(derive)* simplify types
+
 ## [0.4.1](https://github.com/conjure-cp/uniplate/compare/v0.4.0...v0.4.1) - 2025-08-04
 
 ### Added

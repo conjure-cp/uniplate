@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2](https://github.com/conjure-cp/uniplate/compare/uniplate-derive-v0.4.1...uniplate-derive-v0.4.2) - 2025-08-05
+
+### Added
+
+- *(derive)* support tuples in derive macro
+
+### Other
+
+- *(derive)* simplify types
+- update edition to 2024
+
 ## [0.4.0](https://github.com/conjure-cp/uniplate/compare/uniplate-derive-v0.3.2...uniplate-derive-v0.4.0) - 2025-07-25
 
 ### Added
