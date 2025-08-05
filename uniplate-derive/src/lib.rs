@@ -150,22 +150,22 @@ fn _derive_a_struct_uniplate(state: &mut ParserState, data: ast::DataStruct) -> 
 fn _derive_for_field_enum(
     state: &mut ParserState,
     field_type: &ast::Type,
-    mem: &syn::Member,
+    member: &syn::Member,
 ) -> TokenStream2 {
     // the identifier used in the match clause.
     // either _1, or the field name.
-    let match_ident = match mem {
+    let match_ident = match member {
         syn::Member::Named(ident) => ident.clone(),
         syn::Member::Unnamed(index) => format_ident!("_{}", index),
     };
 
-    let children_ident = format_ident!("_{}_children", mem);
-    let ctx_ident = format_ident!("_{}_ctx", mem);
+    let children_ident = format_ident!("_{}_children", member);
+    let ctx_ident = format_ident!("_{}_ctx", member);
 
     let to_t = state.to.clone().expect("").to_token_stream();
 
     match field_type {
-        ast::Type::Box(_) => {
+        ast::Type::BoxedBasic(_) => {
             quote! {
                 let (#children_ident,#ctx_ident) = ::uniplate::spez::try_biplate_to!((**#match_ident).clone(), #to_t);
             }
@@ -175,29 +175,228 @@ fn _derive_for_field_enum(
                 let (#children_ident,#ctx_ident) = ::uniplate::spez::try_biplate_to!(#match_ident.clone(), #to_t);
             }
         }
+        ast::Type::Tuple(tuple_type) => {
+            // destructure the tuple
+            let tuple_field_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}", member));
+            let destructure_tuple = quote! {
+                    let (#(#tuple_field_idents),*) = #match_ident;
+            };
+
+            // call biplate on each tuple field
+            let call_biplate_for_each_field = tuple_type.fields.iter().enumerate().map(|(i,_)| {
+                let field_ident = format_ident!("_{}_tuple_field_{i}",member);
+                let field_children_ident = format_ident!("_{}_tuple_field_{i}_children",member);
+                let field_ctx_ident = format_ident!("_{}_tuple_field_{i}_ctx", member);
+
+                // let index = syn::Index::from(i);
+                quote!{
+                    let (#field_children_ident,#field_ctx_ident) = ::uniplate::spez::try_biplate_to!(#field_ident.clone(), #to_t);
+                }
+            });
+
+            let tuple_field_children_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}_children", member));
+            let tuple_field_ctx_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}_ctx", member));
+
+            // build the children tree by combining each fields' tree
+            let build_child_tree = quote! {
+                let #children_ident = ::uniplate::Tree::Many(::std::collections::VecDeque::from([#(#tuple_field_children_idents),*]));
+            };
+
+            let index = (0..tuple_type.n).map(syn::Index::from);
+
+            // build the context function
+            let build_child_ctx = quote! {
+                let #ctx_ident = Box::new(move |x| {
+                    let ::uniplate::Tree::Many(xs) = x else {
+                        panic!()
+                    };
+
+                    (#(#tuple_field_ctx_idents(xs[#index].clone())),*)
+                });
+            };
+
+            quote! {
+                #destructure_tuple
+                #(#call_biplate_for_each_field);*
+                #build_child_tree
+                #build_child_ctx
+            }
+        }
+        ast::Type::BoxedTuple(tuple_type) => {
+            // destructure the tuple
+            let tuple_field_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}", member));
+            let destructure_tuple = quote! {
+                    let (#(#tuple_field_idents),*) = (**#match_ident).clone();
+            };
+
+            // call biplate on each tuple field
+            let call_biplate_for_each_field = tuple_type.fields.iter().enumerate().map(|(i,_)| {
+                let field_ident = format_ident!("_{}_tuple_field_{i}",member);
+                let field_children_ident = format_ident!("_{}_tuple_field_{i}_children",member);
+                let field_ctx_ident = format_ident!("_{}_tuple_field_{i}_ctx", member);            
+
+                // let index = syn::Index::from(i);
+                quote!{
+                    let (#field_children_ident,#field_ctx_ident) = ::uniplate::spez::try_biplate_to!(#field_ident.clone(), #to_t);
+                }
+            });
+
+            let tuple_field_children_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}_children", member));
+            let tuple_field_ctx_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}_ctx", member));
+
+            // build the children tree by combining each fields' tree
+            let build_child_tree = quote! {
+                let #children_ident = ::uniplate::Tree::Many(::std::collections::VecDeque::from([#(#tuple_field_children_idents),*]));
+            };
+
+            let index = (0..tuple_type.n).map(syn::Index::from);
+
+            // build the context function
+            let build_child_ctx = quote! {
+                let #ctx_ident = Box::new(move |x| {
+                    let ::uniplate::Tree::Many(xs) = x else {
+                        panic!()
+                    };
+
+                    (#(#tuple_field_ctx_idents(xs[#index].clone())),*)
+                });
+            };
+
+            quote! {
+                #destructure_tuple
+                #(#call_biplate_for_each_field);*
+                #build_child_tree
+                #build_child_ctx
+            }
+        }
     }
 }
 
 fn _derive_for_field_struct(
     state: &mut ParserState,
     field_type: &ast::Type,
-    mem: syn::Member,
+    member: syn::Member,
 ) -> TokenStream2 {
-    let children_ident = format_ident!("_{}_children", mem);
-    let ctx_ident = format_ident!("_{}_ctx", mem);
+    let children_ident = format_ident!("_{}_children", member);
+    let ctx_ident = format_ident!("_{}_ctx", member);
 
     let to_t = state.to.clone().expect("").to_token_stream();
 
     match field_type {
-        // dereference the field
-        ast::Type::Box(_) => {
+        ast::Type::BoxedBasic(_) => {
             quote! {
-                let (#children_ident,#ctx_ident) = ::uniplate::spez::try_biplate_to!((*self.#mem).clone(), #to_t);
+                let (#children_ident,#ctx_ident) = ::uniplate::spez::try_biplate_to!((*self.#member).clone(), #to_t);
             }
         }
         ast::Type::Basic(_) => {
             quote! {
-                let (#children_ident,#ctx_ident) = ::uniplate::try_biplate_to!(self.#mem.clone(), #to_t);
+                let (#children_ident,#ctx_ident) = ::uniplate::try_biplate_to!(self.#member.clone(), #to_t);
+            }
+        }
+        ast::Type::Tuple(tuple_type) => {
+            // destructure the tuple
+            let tuple_field_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}", member));
+            let destructure_tuple = quote! {
+                    let (#(#tuple_field_idents),*) = self.#member.clone();
+            };
+
+            // call biplate on each tuple field
+            let call_biplate_for_each_field = tuple_type.fields.iter().enumerate().map(|(i,_)| {
+                let field_ident = format_ident!("_{}_tuple_field_{i}",member);
+                let field_children_ident = format_ident!("_{}_tuple_field_{i}_children",member);
+                let field_ctx_ident = format_ident!("_{}_tuple_field_{i}_ctx", member);
+
+                // let index = syn::Index::from(i);
+                quote!{
+                    let (#field_children_ident,#field_ctx_ident) = ::uniplate::spez::try_biplate_to!(#field_ident.clone(), #to_t);
+                }
+            });
+
+            let tuple_field_children_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}_children", member));
+            let tuple_field_ctx_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}_ctx", member));
+
+            // build the children tree by combining each fields' tree
+            let build_child_tree = quote! {
+                let #children_ident = ::uniplate::Tree::Many(::std::collections::VecDeque::from([#(#tuple_field_children_idents),*]));
+            };
+
+            let index = (0..tuple_type.n).map(syn::Index::from);
+
+            // build the context function
+            let build_child_ctx = quote! {
+                let #ctx_ident = Box::new(move |x| {
+                    let ::uniplate::Tree::Many(xs) = x else {
+                        panic!()
+                    };
+
+                    (#(#tuple_field_ctx_idents(xs[#index].clone())),*)
+                });
+            };
+
+            quote! {
+                #destructure_tuple
+                #(#call_biplate_for_each_field);*
+                #build_child_tree
+                #build_child_ctx
+            }
+        }
+        ast::Type::BoxedTuple(tuple_type) => {
+            // destructure the tuple
+            let tuple_field_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}", member));
+            let destructure_tuple = quote! {
+                    let (#(#tuple_field_idents),*) = (*self.#member).clone();
+            };
+
+            // call biplate on each tuple field
+            let call_biplate_for_each_field = tuple_type.fields.iter().enumerate().map(|(i,_)| {
+                let field_ident = format_ident!("_{}_tuple_field_{i}",member);
+                let field_children_ident = format_ident!("_{}_tuple_field_{i}_children",member);
+                let field_ctx_ident = format_ident!("_{}_tuple_field_{i}_ctx", member);
+
+                // let index = syn::Index::from(i);
+                quote!{
+                    let (#field_children_ident,#field_ctx_ident) = ::uniplate::spez::try_biplate_to!(#field_ident.clone(), #to_t);
+                }
+            });
+
+            let tuple_field_children_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}_children", member));
+            let tuple_field_ctx_idents =
+                (0..tuple_type.n).map(|i| format_ident!("_{}_tuple_field_{i}_ctx", member));
+
+            // build the children tree by combining each fields' tree
+            let build_child_tree = quote! {
+                let #children_ident = ::uniplate::Tree::Many(::std::collections::VecDeque::from([#(#tuple_field_children_idents),*]));
+            };
+
+            let index = (0..tuple_type.n).map(syn::Index::from);
+
+            // build the context function
+            let build_child_ctx = quote! {
+                let #ctx_ident = Box::new(move |x| {
+                    let ::uniplate::Tree::Many(xs) = x else {
+                        panic!()
+                    };
+
+                    (#(#tuple_field_ctx_idents(xs[#index].clone())),*)
+                });
+            };
+
+            quote! {
+                #destructure_tuple
+                #(#call_biplate_for_each_field);*
+                #build_child_tree
+                #build_child_ctx
             }
         }
     }
@@ -205,16 +404,10 @@ fn _derive_for_field_struct(
 
 fn _derive_children(_state: &mut ParserState, fields: &ast::Fields) -> TokenStream2 {
     let mut subtrees: VecDeque<TokenStream2> = VecDeque::new();
-    for (member, field_type) in fields.defs() {
-        subtrees.push_back(match field_type {
-            ast::Type::Box(_) => {
-                let children_ident = format_ident!("_{}_children", member);
-                quote!(#children_ident)
-            }
-            ast::Type::Basic(_) => {
-                let children_ident = format_ident!("_{}_children", member);
-                quote!(#children_ident)
-            }
+    for (member, _) in fields.defs() {
+        subtrees.push_back({
+            let children_ident = format_ident!("_{}_children", member);
+            quote!(#children_ident)
         });
     }
 
@@ -236,12 +429,12 @@ fn _derive_ctx(
         .defs()
         .enumerate()
         .map(|(i, (mem, typ))| match typ {
-            ast::Type::Basic(_) => {
+            ast::Type::Basic(_) | ast::Type::Tuple(_) => {
                 let ctx_ident = format_ident!("_{}_ctx", mem);
                 quote! {#ctx_ident(x[#i].clone())}
             }
 
-            ast::Type::Box(_) => {
+            ast::Type::BoxedBasic(_) | ast::Type::BoxedTuple(_) => {
                 let ctx_ident = format_ident!("_{}_ctx", mem);
                 quote! {Box::new(#ctx_ident(x[#i].clone()))}
             }

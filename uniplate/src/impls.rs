@@ -115,8 +115,8 @@ where
     }
 }
 
-// tuples {{{
-impl<T: Uniplate, U: Uniplate> Uniplate for (T, U) {
+// guples {{{
+impl<T: Uniplate + Biplate<(T, U)>, U: Uniplate + Biplate<(T, U)>> Uniplate for (T, U) {
     fn uniplate(&self) -> (Tree<Self>, Box<dyn Fn(Tree<Self>) -> Self>) {
         let (t, u) = self.clone();
         let (t_tree, t_recons) = try_biplate_to!(t, (T, U));
@@ -137,7 +137,12 @@ impl<T: Uniplate, U: Uniplate> Uniplate for (T, U) {
     }
 }
 
-impl<T: Uniplate, U: Uniplate, To: Uniplate> Biplate<To> for (T, U) {
+impl<
+    T: Uniplate + Biplate<To> + Biplate<(T, U)>,
+    U: Uniplate + Biplate<To> + Biplate<(T, U)>,
+    To: Uniplate,
+> Biplate<To> for (T, U)
+{
     fn biplate(&self) -> (Tree<To>, Box<dyn Fn(Tree<To>) -> Self>) {
         if std::any::TypeId::of::<To>() == std::any::TypeId::of::<(T, U)>() {
             unsafe {
@@ -177,7 +182,12 @@ impl<T: Uniplate, U: Uniplate, To: Uniplate> Biplate<To> for (T, U) {
     }
 }
 
-impl<T: Uniplate, U: Uniplate, V: Uniplate> Uniplate for (T, U, V) {
+impl<
+    T: Uniplate + Biplate<(T, U, V)>,
+    U: Uniplate + Biplate<(T, U, V)>,
+    V: Uniplate + Biplate<(T, U, V)>,
+> Uniplate for (T, U, V)
+{
     fn uniplate(&self) -> (Tree<Self>, Box<dyn Fn(Tree<Self>) -> Self>) {
         let (t, u, v) = self.clone();
         let (t_tree, t_recons) = try_biplate_to!(t, (T, U, V));
@@ -200,7 +210,13 @@ impl<T: Uniplate, U: Uniplate, V: Uniplate> Uniplate for (T, U, V) {
     }
 }
 
-impl<T: Uniplate, U: Uniplate, V: Uniplate, To: Uniplate> Biplate<To> for (T, U, V) {
+impl<
+    T: Uniplate + Biplate<To> + Biplate<(T, U, V)>,
+    U: Uniplate + Biplate<To> + Biplate<(T, U, V)>,
+    V: Uniplate + Biplate<To> + Biplate<(T, U, V)>,
+    To: Uniplate,
+> Biplate<To> for (T, U, V)
+{
     fn biplate(&self) -> (Tree<To>, Box<dyn Fn(Tree<To>) -> Self>) {
         if std::any::TypeId::of::<To>() == std::any::TypeId::of::<(T, U, V)>() {
             unsafe {
@@ -242,7 +258,13 @@ impl<T: Uniplate, U: Uniplate, V: Uniplate, To: Uniplate> Biplate<To> for (T, U,
     }
 }
 
-impl<T: Uniplate, U: Uniplate, V: Uniplate, W: Uniplate> Uniplate for (T, U, V, W) {
+impl<
+    T: Uniplate + Biplate<(T, U, V, W)>,
+    U: Uniplate + Biplate<(T, U, V, W)>,
+    V: Uniplate + Biplate<(T, U, V, W)>,
+    W: Uniplate + Biplate<(T, U, V, W)>,
+> Uniplate for (T, U, V, W)
+{
     fn uniplate(&self) -> (Tree<Self>, Box<dyn Fn(Tree<Self>) -> Self>) {
         let (t, u, v, w) = self.clone();
         let (t_tree, t_recons) = try_biplate_to!(t, (T, U, V, W));
@@ -267,8 +289,13 @@ impl<T: Uniplate, U: Uniplate, V: Uniplate, W: Uniplate> Uniplate for (T, U, V, 
     }
 }
 
-impl<T: Uniplate, U: Uniplate, V: Uniplate, W: Uniplate, To: Uniplate> Biplate<To>
-    for (T, U, V, W)
+impl<
+    T: Uniplate + Biplate<To> + Biplate<(T, U, V, W)>,
+    U: Uniplate + Biplate<To> + Biplate<(T, U, V, W)>,
+    V: Uniplate + Biplate<To> + Biplate<(T, U, V, W)>,
+    W: Uniplate + Biplate<To> + Biplate<(T, U, V, W)>,
+    To: Uniplate,
+> Biplate<To> for (T, U, V, W)
 {
     fn biplate(&self) -> (Tree<To>, Box<dyn Fn(Tree<To>) -> Self>) {
         if std::any::TypeId::of::<To>() == std::any::TypeId::of::<(T, U, V, W)>() {
@@ -313,7 +340,14 @@ impl<T: Uniplate, U: Uniplate, V: Uniplate, W: Uniplate, To: Uniplate> Biplate<T
     }
 }
 
-impl<T: Uniplate, U: Uniplate, V: Uniplate, W: Uniplate, X: Uniplate> Uniplate for (T, U, V, W, X) {
+impl<
+    T: Uniplate + Biplate<(T, U, V, W, X)>,
+    U: Uniplate + Biplate<(T, U, V, W, X)>,
+    V: Uniplate + Biplate<(T, U, V, W, X)>,
+    W: Uniplate + Biplate<(T, U, V, W, X)>,
+    X: Uniplate + Biplate<(T, U, V, W, X)>,
+> Uniplate for (T, U, V, W, X)
+{
     fn uniplate(&self) -> (Tree<Self>, Box<dyn Fn(Tree<Self>) -> Self>) {
         let (t, u, v, w, x) = self.clone();
         let (t_tree, t_recons) = try_biplate_to!(t, (T, U, V, W, X));
@@ -340,8 +374,14 @@ impl<T: Uniplate, U: Uniplate, V: Uniplate, W: Uniplate, X: Uniplate> Uniplate f
     }
 }
 
-impl<T: Uniplate, U: Uniplate, V: Uniplate, W: Uniplate, X: Uniplate, To: Uniplate> Biplate<To>
-    for (T, U, V, W, X)
+impl<
+    T: Uniplate + Biplate<To> + Biplate<(T, U, V, W, X)>,
+    U: Uniplate + Biplate<To> + Biplate<(T, U, V, W, X)>,
+    V: Uniplate + Biplate<To> + Biplate<(T, U, V, W, X)>,
+    W: Uniplate + Biplate<To> + Biplate<(T, U, V, W, X)>,
+    X: Uniplate + Biplate<To> + Biplate<(T, U, V, W, X)>,
+    To: Uniplate,
+> Biplate<To> for (T, U, V, W, X)
 {
     fn biplate(&self) -> (Tree<To>, Box<dyn Fn(Tree<To>) -> Self>) {
         if std::any::TypeId::of::<To>() == std::any::TypeId::of::<(T, U, V, W, X)>() {
