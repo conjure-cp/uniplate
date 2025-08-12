@@ -11,7 +11,9 @@ pub mod spez;
 pub mod tagged_zipper;
 pub mod zipper;
 
+pub mod impl_helpers;
 mod traits;
+
 mod tree;
 
 pub use traits::{Biplate, Uniplate};
