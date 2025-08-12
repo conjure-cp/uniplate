@@ -242,7 +242,7 @@ macro_rules! derive_iter {
                 Box<dyn Fn(::uniplate::Tree<Self>) -> Self>,
             ) {
                 let val = self.clone();
-                (Zero, Box::new(move |_| val.clone()))
+                (::uniplate::Tree::Zero, Box::new(move |_| val.clone()))
             }
         }
     };
