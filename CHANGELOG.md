@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3](https://github.com/conjure-cp/uniplate/compare/v0.4.2...v0.4.3) - 2025-08-13
+
+### Added
+
+- add helpers to safely transmute &T -> &U when T=U
+
+### Other
+
+- split impls into separate files
+
 ## [0.4.2](https://github.com/conjure-cp/uniplate/compare/v0.4.1...v0.4.2) - 2025-08-05
 
 ### Added
