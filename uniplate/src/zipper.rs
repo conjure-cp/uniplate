@@ -114,6 +114,11 @@ impl<T: Uniplate> Zipper<T> {
         Some(())
     }
 
+    /// Check if the focus has a parent
+    pub fn has_up(&self) -> bool {
+        !self.path.is_empty()
+    }
+
     /// Sets the focus to the left-most child of the focus (if it exists).
     pub fn go_down(&mut self) -> Option<()> {
         let (children, ctx) = self.focus.uniplate();
@@ -131,6 +136,15 @@ impl<T: Uniplate> Zipper<T> {
         Some(())
     }
 
+    /// Check if the focus has children
+    pub fn has_down(&self) -> bool {
+        let (children, _) = self.focus.uniplate();
+        match children {
+            Tree::Zero => false,
+            _ => true,
+        }
+    }
+
     /// Sets the focus to the left sibling of the focus (if it exists).
     pub fn go_left(&mut self) -> Option<()> {
         let path_segment = self.path.last_mut()?;
@@ -140,6 +154,14 @@ impl<T: Uniplate> Zipper<T> {
         Some(())
     }
 
+    /// Check if the focus has a left sibling
+    pub fn has_left(&self) -> bool {
+        let Some(path_segment) = self.path.last() else {
+            return false;
+        };
+        !path_segment.left.is_empty()
+    }
+
     /// Sets the focus to the right sibling of the focus (if it exists).
     pub fn go_right(&mut self) -> Option<()> {
         let path_segment = self.path.last_mut()?;
@@ -147,6 +169,14 @@ impl<T: Uniplate> Zipper<T> {
         let old_focus = std::mem::replace(&mut self.focus, new_focus);
         path_segment.left.push_back(old_focus);
         Some(())
+    }
+
+    /// Check if the focus has a right sibling
+    pub fn has_right(&self) -> bool {
+        let Some(path_segment) = self.path.last() else {
+            return false;
+        };
+        !path_segment.right.is_empty()
     }
 
     /// Returns an iterator over the left siblings of the focus, in left-right order.
