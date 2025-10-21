@@ -142,7 +142,7 @@ macro_rules! derive_iter {
                 &self,
             ) -> (
                 ::uniplate::Tree<T>,
-                Box<(dyn Fn(::uniplate::Tree<T>) -> $iter_ty<F>)>,
+                Box<dyn Fn(::uniplate::Tree<T>) -> $iter_ty<F>>,
             ) {
                 if (self.is_empty()) {
                     let val = self.clone();
