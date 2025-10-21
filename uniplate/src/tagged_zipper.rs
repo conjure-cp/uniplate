@@ -156,12 +156,12 @@ where
     }
 
     /// Borrows the tag of the current focus.
-    pub fn tag(&self) -> Ref<D> {
+    pub fn tag(&self) -> Ref<'_, D> {
         Ref::map(self.tag_node.borrow(), |node| &node.data)
     }
 
     /// Mutably borrows the tag of the current focus.
-    pub fn tag_mut(&mut self) -> RefMut<D> {
+    pub fn tag_mut(&mut self) -> RefMut<'_, D> {
         RefMut::map(self.tag_node.borrow_mut(), |node| &mut node.data)
     }
 

@@ -100,3 +100,56 @@ fn zipper_iter_ancestors_mutate() {
         Tree::One(0, Box::new(Tree::None))
     );
 }
+
+#[test]
+fn zipper_has_up() {
+    let mut zipper = Zipper::new(Tree::One(0, Box::new(Tree::One(1, Box::new(Tree::None)))));
+    zipper.go_down();
+
+    assert!(zipper.has_up());
+    zipper.go_up();
+    assert!(!zipper.has_up());
+}
+
+#[test]
+fn zipper_has_up_from_root() {
+    let zipper = Zipper::new(Tree::None);
+    assert!(!zipper.has_up());
+}
+
+#[test]
+fn zipper_has_down_no_children() {
+    let zipper = Zipper::new(Tree::None);
+    assert!(!zipper.has_down());
+}
+
+#[test]
+fn zipper_has_down() {
+    let mut zipper = Zipper::new(Tree::One(0, Box::new(Tree::One(1, Box::new(Tree::None)))));
+
+    assert!(zipper.has_down());
+    zipper.go_down();
+    assert!(zipper.has_down());
+    zipper.go_down();
+    assert!(!zipper.has_down());
+}
+
+#[test]
+fn zipper_has_left() {
+    let mut zipper = Zipper::new(Tree::Many(0, (1..3).map(Tree::Leaf).collect()));
+    zipper.go_down();
+
+    assert!(!zipper.has_left());
+    zipper.go_right();
+    assert!(zipper.has_left());
+}
+
+#[test]
+fn zipper_has_right() {
+    let mut zipper = Zipper::new(Tree::Many(0, (1..3).map(Tree::Leaf).collect()));
+    zipper.go_down();
+
+    assert!(zipper.has_right());
+    zipper.go_right();
+    assert!(!zipper.has_right());
+}
