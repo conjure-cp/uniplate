@@ -24,9 +24,9 @@ harness=false
 uniplate-derive = { version = "0.4.4", path = "../uniplate-derive" }
 
 [dev-dependencies]
-trybuild = "1.0.111"
-proptest = "1.8.0"
-proptest-derive = "0.6.0"
+trybuild = "1.0.113"
+proptest = "1.9.0"
+proptest-derive = "0.7.0"
 criterion = "0.7.0"
 
 [features]

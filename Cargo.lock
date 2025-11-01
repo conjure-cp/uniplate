@@ -387,23 +387,22 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.101"
+version = "1.0.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de"
+checksum = "5ee95bc4ef87b8d5ba32e8b7714ccc834865276eab0aed5c9958d00ec45f49e8"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "proptest"
-version = "1.8.0"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bb0be07becd10686a0bb407298fb425360a5c44a663774406340c59a22de4ce"
+checksum = "bee689443a2bd0a16ab0348b52ee43e3b2d1b1f931c8aa5c9f8de4c86fbe8c40"
 dependencies = [
  "bit-set",
  "bit-vec",
  "bitflags",
- "lazy_static",
  "num-traits",
  "rand",
  "rand_chacha",
@@ -416,9 +415,9 @@ dependencies = [
 
 [[package]]
 name = "proptest-derive"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "095a99f75c69734802359b682be8daaf8980296731f6470434ea2c652af1dd30"
+checksum = "fb6dc647500e84a25a85b100e76c85b8ace114c209432dc174f20aac11d4ed6c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -633,9 +632,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.107"
+version = "2.0.108"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a26dbd934e5451d21ef060c018dae56fc073894c5a7896f882928a76e6d081b"
+checksum = "da58917d35242480a05c2897064da0a80589a2a0476c9a3f2fdc83b53502e917"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -644,9 +643,9 @@ dependencies = [
 
 [[package]]
 name = "target-triple"
-version = "0.1.4"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ac9aa371f599d22256307c24a9d748c041e548cbf599f35d890f9d365361790"
+checksum = "591ef38edfb78ca4771ee32cf494cb8771944bee237a9b91fc9c1424ac4b777b"
 
 [[package]]
 name = "tempfile"
@@ -721,9 +720,9 @@ checksum = "df8b2b54733674ad286d16267dcfc7a71ed5c776e4ac7aa3c3e2561f7c637bf2"
 
 [[package]]
 name = "trybuild"
-version = "1.0.112"
+version = "1.0.113"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d66678374d835fe847e0dc8348fde2ceb5be4a7ec204437d8367f0d8df266a5"
+checksum = "559b6a626c0815c942ac98d434746138b4f89ddd6a1b8cbb168c6845fb3376c5"
 dependencies = [
  "glob",
  "serde",
