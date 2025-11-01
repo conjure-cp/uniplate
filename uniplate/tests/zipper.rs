@@ -1,5 +1,4 @@
-use uniplate::zipper::Zipper;
-use uniplate_derive::Uniplate;
+use uniplate::{Uniplate, zipper::Zipper};
 
 #[derive(Clone, PartialEq, Eq, Debug, Uniplate)]
 enum Tree {
@@ -131,6 +130,15 @@ fn zipper_has_down() {
     zipper.go_down();
     assert!(zipper.has_down());
     zipper.go_down();
+    assert!(!zipper.has_down());
+}
+
+#[test]
+fn zipper_has_down_type_not_enterable() {
+    #[derive(Clone, PartialEq, Eq, Uniplate, Debug)]
+    struct Data(i32);
+
+    let zipper = Zipper::new(Data(0));
     assert!(!zipper.has_down());
 }
 
