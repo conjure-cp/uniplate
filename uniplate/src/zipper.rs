@@ -139,10 +139,7 @@ impl<T: Uniplate> Zipper<T> {
     /// Check if the focus has children
     pub fn has_down(&self) -> bool {
         let (children, _) = self.focus.uniplate();
-        match children {
-            Tree::Zero => false,
-            _ => true,
-        }
+        !children.is_empty()
     }
 
     /// Sets the focus to the left sibling of the focus (if it exists).

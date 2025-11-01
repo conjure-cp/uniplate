@@ -24,6 +24,17 @@ pub enum Tree<T: Sized + Clone + Eq> {
 // worth it when we use all the children returned. This is what we use this for inside Uniplate.
 // Because of this, I think a .iter() / IntoIterator for Tree<&T> is a bad idea.
 
+impl<T: Sized + Clone + Eq> Tree<T> {
+    /// Returns true if the tree contains any `One` variants, false otherwise.
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Tree::Zero => true,
+            Tree::One(_) => false,
+            Tree::Many(children) => children.iter().all(|tr| tr.is_empty()),
+        }
+    }
+}
+
 impl<T: Sized + Clone + Eq + 'static> IntoIterator for Tree<T> {
     type Item = T;
 
