@@ -7,7 +7,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{Uniplate, zipper::Zipper};
+use crate::{Uniplate, zipper::SimpleZipper};
 
 struct TagNode<D> {
     data: D,
@@ -37,7 +37,7 @@ struct TagNode<D> {
 /// # Example
 /// In this example, tags are used to cache the height of a binary tree.
 /// ```rust
-/// use uniplate::{Uniplate, tagged_zipper::TaggedZipper};
+/// use uniplate::{Uniplate, zipper::TaggedZipper};
 ///
 /// /// A simple binary tree.
 /// #[derive(Uniplate, Debug, Clone, PartialEq, Eq)]
@@ -94,7 +94,7 @@ where
     D: Clone,
     F: FnMut(&T) -> D,
 {
-    zipper: Zipper<T>,
+    zipper: SimpleZipper<T>,
     tag_node: Rc<RefCell<TagNode<D>>>,
     construct_tag: F,
 }
@@ -118,14 +118,14 @@ where
         TaggedZipper {
             tag_node: Rc::new(RefCell::new(tag_node)),
             construct_tag: constructor,
-            zipper: Zipper::new(root),
+            zipper: SimpleZipper::new(root),
         }
     }
 
     /// Returns an immutable borrow to the underlying zipper.
     ///
     /// Mutable access to the inner tree is not provided, as it could break the tag structure.
-    pub fn zipper(&self) -> &Zipper<T> {
+    pub fn zipper(&self) -> &SimpleZipper<T> {
         &self.zipper
     }
 

@@ -1,21 +1,6 @@
-//! Cursors into Uniplate types.
+//! Simple cursors into Uniplate types.
 //!
-//! A zipper is a cursor into a functional data structure. The cursor can be moved around the data
-//! structure, and the value at the cursor can be quickly updated.
-//!
-//! Zippers are particularly useful for mutating self-referential data structures. Updating the
-//! value at the cursor is O(1), regardless of its position inside the data structure.
-//!
-//! For this reason, Zippers should be used instead of [`contexts`](super::Uniplate::contexts) or
-//! [`contexts_bi`](super::Biplate::contexts_bi) if you plan to do a lot of mutation during
-//! traversal. These functions recreate the root node each time the context function is called,
-//! which has a logarithmic complexity.
-//!
-//! For more information, see:
-//!
-//!   - [the original paper by Huet](https://www.st.cs.uni-saarland.de/edu/seminare/2005/advanced-fp/docs/huet-zipper.pdf)
-//!
-//!   - [this explanatory blog post](https://pavpanchekha.com/blog/zippers/huet.html)
+//! See the [module-level documentation](crate::zipper) for more.
 
 use std::{collections::VecDeque, sync::Arc};
 
@@ -25,7 +10,7 @@ use crate::{Biplate, Tree, Uniplate};
 ///
 /// See the module-level documentation.
 #[derive(Clone)]
-pub struct Zipper<T: Uniplate> {
+pub struct SimpleZipper<T: Uniplate> {
     /// The current node
     focus: T,
 
@@ -54,12 +39,12 @@ struct PathSegment<T: Uniplate> {
     ctx: Arc<dyn Fn(Tree<T>) -> T>,
 }
 
-impl<T: Uniplate> Zipper<T> {
+impl<T: Uniplate> SimpleZipper<T> {
     /// Creates a new [`Zipper`] with `root` as the root node.
     ///
     /// The focus is initially the root node.
     pub fn new(root: T) -> Self {
-        Zipper {
+        SimpleZipper {
             focus: root,
             path: Vec::new(),
         }
@@ -215,7 +200,7 @@ impl<T: Uniplate> Zipper<T> {
 }
 
 struct AncestorsIter<T: Uniplate> {
-    zipper: Zipper<T>,
+    zipper: SimpleZipper<T>,
 }
 
 impl<T: Uniplate> Iterator for AncestorsIter<T> {
@@ -235,7 +220,7 @@ impl<T: Uniplate> Iterator for AncestorsIter<T> {
 ///
 /// See the module-level documentation.
 #[derive(Clone)]
-pub struct ZipperBi<To: Uniplate, From: Biplate<To>> {
+pub struct SimpleZipperBi<To: Uniplate, From: Biplate<To>> {
     /// The current node
     focus: To,
 
@@ -281,7 +266,7 @@ enum PathSegmentBi<To: Uniplate, From: Biplate<To>> {
     },
 }
 
-impl<To: Uniplate, From: Biplate<To>> ZipperBi<To, From> {
+impl<To: Uniplate, From: Biplate<To>> SimpleZipperBi<To, From> {
     /// Creates a new [`ZipperBi`] with `root` as the root node.
     ///
     /// The focus is set to the left-most child of `root`.
@@ -300,7 +285,7 @@ impl<To: Uniplate, From: Biplate<To>> ZipperBi<To, From> {
             ctx: ctx.into(),
         };
 
-        Some(ZipperBi {
+        Some(SimpleZipperBi {
             focus,
             path: vec![segment],
         })

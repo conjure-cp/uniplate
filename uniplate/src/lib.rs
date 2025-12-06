@@ -8,7 +8,6 @@ extern crate self as uniplate;
 pub mod impls;
 
 pub mod spez;
-pub mod tagged_zipper;
 pub mod zipper;
 
 pub mod impl_helpers;

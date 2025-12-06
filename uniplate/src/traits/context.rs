@@ -1,19 +1,19 @@
 //! The underlying iterator for `Uniplate::context()`cionte
 
-use crate::zipper::{Zipper, ZipperBi};
+use crate::zipper::{SimpleZipper, SimpleZipperBi};
 
 use super::{Biplate, Uniplate};
 
 /// Iterator for `context`
 pub(super) struct ContextIter<T: Uniplate> {
-    zipper: Zipper<T>,
+    zipper: SimpleZipper<T>,
     done: bool,
 }
 
 impl<T: Uniplate> ContextIter<T> {
     pub(super) fn new(root: T) -> ContextIter<T> {
         ContextIter {
-            zipper: Zipper::new(root),
+            zipper: SimpleZipper::new(root),
             done: false,
         }
     }
@@ -54,14 +54,14 @@ impl<T: Uniplate> Iterator for ContextIter<T> {
 
 /// Iterator for `context_bi`
 pub(super) struct ContextIterBi<T: Uniplate, U: Biplate<T>> {
-    zipper: Option<ZipperBi<T, U>>,
+    zipper: Option<SimpleZipperBi<T, U>>,
     done: bool,
 }
 
 impl<T: Uniplate, U: Biplate<T>> ContextIterBi<T, U> {
     pub(super) fn new(root: U) -> ContextIterBi<T, U> {
         ContextIterBi {
-            zipper: ZipperBi::new(root),
+            zipper: SimpleZipperBi::new(root),
             done: false,
         }
     }
