@@ -1,4 +1,4 @@
-use uniplate::{Uniplate, zipper::SimpleZipper};
+use uniplate::{Uniplate, zipper::*};
 
 #[derive(Clone, PartialEq, Eq, Debug, Uniplate)]
 enum Tree {

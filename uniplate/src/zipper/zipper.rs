@@ -4,6 +4,7 @@
 
 use std::{collections::VecDeque, sync::Arc};
 
+use super::Zipper;
 use crate::{Biplate, Tree, Uniplate};
 
 /// A Zipper over `Uniplate` types.
@@ -40,7 +41,7 @@ struct PathSegment<T: Uniplate> {
 }
 
 impl<T: Uniplate> SimpleZipper<T> {
-    /// Creates a new [`Zipper`] with `root` as the root node.
+    /// Creates a new [`SimpleZipper`] with `root` as the root node.
     ///
     /// The focus is initially the root node.
     pub fn new(root: T) -> Self {
@@ -50,25 +51,9 @@ impl<T: Uniplate> SimpleZipper<T> {
         }
     }
 
-    /// Borrows the current focus.
-    pub fn focus(&self) -> &T {
-        &self.focus
-    }
-
     /// Mutably borrows the current focus.
     pub fn focus_mut(&mut self) -> &mut T {
         &mut self.focus
-    }
-
-    /// Replaces the focus of the [Zipper], returning the old focus.
-    pub fn replace_focus(&mut self, new_focus: T) -> T {
-        std::mem::replace(&mut self.focus, new_focus)
-    }
-
-    /// Rebuilds the root node, consuming the [`Zipper`].
-    pub fn rebuild_root(mut self) -> T {
-        while self.go_up().is_some() {}
-        self.focus
     }
 
     /// Returns the depth of the focus from the root.
@@ -82,83 +67,6 @@ impl<T: Uniplate> SimpleZipper<T> {
     pub(crate) fn siblings_index(&self) -> Option<usize> {
         let path_segment = self.path.last()?;
         Some(path_segment.left.len())
-    }
-
-    /// Sets the focus to the parent of the focus (if it exists).
-    pub fn go_up(&mut self) -> Option<()> {
-        let mut path_seg = self.path.pop()?;
-
-        // TODO: get rid of the clone if possible
-        path_seg.left.push_back(self.focus.clone());
-        path_seg.left.append(&mut path_seg.right);
-
-        let tree = (path_seg.rebuild_tree)(path_seg.left);
-
-        self.focus = (path_seg.ctx)(tree);
-
-        Some(())
-    }
-
-    /// Check if the focus has a parent
-    pub fn has_up(&self) -> bool {
-        !self.path.is_empty()
-    }
-
-    /// Sets the focus to the left-most child of the focus (if it exists).
-    pub fn go_down(&mut self) -> Option<()> {
-        let (children, ctx) = self.focus.uniplate();
-        let (mut siblings, rebuild_tree) = children.list();
-        let new_focus = siblings.pop_front()?;
-        let new_segment = PathSegment {
-            left: VecDeque::new(),
-            right: siblings,
-            rebuild_tree: rebuild_tree.into(),
-            ctx: ctx.into(),
-        };
-
-        self.path.push(new_segment);
-        self.focus = new_focus;
-        Some(())
-    }
-
-    /// Check if the focus has children
-    pub fn has_down(&self) -> bool {
-        let (children, _) = self.focus.uniplate();
-        !children.is_empty()
-    }
-
-    /// Sets the focus to the left sibling of the focus (if it exists).
-    pub fn go_left(&mut self) -> Option<()> {
-        let path_segment = self.path.last_mut()?;
-        let new_focus = path_segment.left.pop_front()?;
-        let old_focus = std::mem::replace(&mut self.focus, new_focus);
-        path_segment.right.push_back(old_focus);
-        Some(())
-    }
-
-    /// Check if the focus has a left sibling
-    pub fn has_left(&self) -> bool {
-        let Some(path_segment) = self.path.last() else {
-            return false;
-        };
-        !path_segment.left.is_empty()
-    }
-
-    /// Sets the focus to the right sibling of the focus (if it exists).
-    pub fn go_right(&mut self) -> Option<()> {
-        let path_segment = self.path.last_mut()?;
-        let new_focus = path_segment.right.pop_front()?;
-        let old_focus = std::mem::replace(&mut self.focus, new_focus);
-        path_segment.left.push_back(old_focus);
-        Some(())
-    }
-
-    /// Check if the focus has a right sibling
-    pub fn has_right(&self) -> bool {
-        let Some(path_segment) = self.path.last() else {
-            return false;
-        };
-        !path_segment.right.is_empty()
     }
 
     /// Returns an iterator over the left siblings of the focus, in left-right order.
@@ -199,6 +107,93 @@ impl<T: Uniplate> SimpleZipper<T> {
     }
 }
 
+impl<T> Zipper<T> for SimpleZipper<T>
+where
+    T: Uniplate,
+{
+    fn focus(&self) -> &T {
+        &self.focus
+    }
+
+    fn replace_focus(&mut self, new_focus: T) -> T {
+        std::mem::replace(&mut self.focus, new_focus)
+    }
+
+    fn rebuild_root(mut self) -> T {
+        while self.go_up().is_some() {}
+        self.focus
+    }
+
+    fn go_up(&mut self) -> Option<()> {
+        let mut path_seg = self.path.pop()?;
+
+        // TODO: get rid of the clone if possible
+        path_seg.left.push_back(self.focus.clone());
+        path_seg.left.append(&mut path_seg.right);
+
+        let tree = (path_seg.rebuild_tree)(path_seg.left);
+
+        self.focus = (path_seg.ctx)(tree);
+
+        Some(())
+    }
+
+    fn has_up(&self) -> bool {
+        !self.path.is_empty()
+    }
+
+    fn go_down(&mut self) -> Option<()> {
+        let (children, ctx) = self.focus.uniplate();
+        let (mut siblings, rebuild_tree) = children.list();
+        let new_focus = siblings.pop_front()?;
+        let new_segment = PathSegment {
+            left: VecDeque::new(),
+            right: siblings,
+            rebuild_tree: rebuild_tree.into(),
+            ctx: ctx.into(),
+        };
+
+        self.path.push(new_segment);
+        self.focus = new_focus;
+        Some(())
+    }
+
+    fn has_down(&self) -> bool {
+        let (children, _) = self.focus.uniplate();
+        !children.is_empty()
+    }
+
+    fn go_left(&mut self) -> Option<()> {
+        let path_segment = self.path.last_mut()?;
+        let new_focus = path_segment.left.pop_front()?;
+        let old_focus = std::mem::replace(&mut self.focus, new_focus);
+        path_segment.right.push_back(old_focus);
+        Some(())
+    }
+
+    fn has_left(&self) -> bool {
+        let Some(path_segment) = self.path.last() else {
+            return false;
+        };
+        !path_segment.left.is_empty()
+    }
+
+    fn go_right(&mut self) -> Option<()> {
+        let path_segment = self.path.last_mut()?;
+        let new_focus = path_segment.right.pop_front()?;
+        let old_focus = std::mem::replace(&mut self.focus, new_focus);
+        path_segment.left.push_back(old_focus);
+        Some(())
+    }
+
+    fn has_right(&self) -> bool {
+        let Some(path_segment) = self.path.last() else {
+            return false;
+        };
+        !path_segment.right.is_empty()
+    }
+}
+
 struct AncestorsIter<T: Uniplate> {
     zipper: SimpleZipper<T>,
 }
@@ -213,9 +208,9 @@ impl<T: Uniplate> Iterator for AncestorsIter<T> {
 
 /// A Zipper over `Biplate` types.
 ///
-/// A `ZipperBi<To,From>` traverses through all values of type `To` in a value of type `From`.
+/// A `SimpleZipperBi<To,From>` traverses through all values of type `To` in a value of type `From`.
 ///
-/// Unlike [`Zipper`], the root node can never be focused on (as it is not of type `To`). Instead,
+/// Unlike [`SimpleZipper`], the root node can never be focused on (as it is not of type `To`). Instead,
 /// the initial node is the left-most child.
 ///
 /// See the module-level documentation.
@@ -267,7 +262,7 @@ enum PathSegmentBi<To: Uniplate, From: Biplate<To>> {
 }
 
 impl<To: Uniplate, From: Biplate<To>> SimpleZipperBi<To, From> {
-    /// Creates a new [`ZipperBi`] with `root` as the root node.
+    /// Creates a new [`SimpleZipperBi`] with `root` as the root node.
     ///
     /// The focus is set to the left-most child of `root`.
     ///
@@ -306,7 +301,7 @@ impl<To: Uniplate, From: Biplate<To>> SimpleZipperBi<To, From> {
         std::mem::replace(&mut self.focus, new_focus)
     }
 
-    /// Rebuilds the root node, consuming the [`ZipperBi`]
+    /// Rebuilds the root node, consuming the [`SimpleZipperBi`]
     pub fn rebuild_root(mut self) -> From {
         while self.go_up().is_some() {}
 
@@ -336,7 +331,7 @@ impl<To: Uniplate, From: Biplate<To>> SimpleZipperBi<To, From> {
 
     /// Sets the focus to the parent of the focus, if it exists and is of type `To.
     ///
-    /// To get the topmost node (of type `From`), use [`rebuild_root`](ZipperBi::rebuild_root).
+    /// To get the topmost node (of type `From`), use [`rebuild_root`](SimpleZipperBi::rebuild_root).
     pub fn go_up(&mut self) -> Option<()> {
         let Some(PathSegmentBi::Node {
             left: _,

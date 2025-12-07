@@ -1,13 +1,14 @@
 //! A Tagged Zipper is a wrapper around a Zipper that allows for attaching arbitrary data to each node.
 //!
-//! See the [`Zipper`] type for more information on how to use this type.
+//! See the [`SimpleZipper`] type for more information on how to use this type.
 
 use std::{
     cell::{Ref, RefCell, RefMut},
     rc::Rc,
 };
 
-use crate::{Uniplate, zipper::SimpleZipper};
+use super::Zipper;
+use crate::{Uniplate, zipper::*};
 
 struct TagNode<D> {
     data: D,
@@ -17,7 +18,7 @@ struct TagNode<D> {
 
 /// A cursor into Uniplate types that allows for attaching arbitrary data to each node.
 ///
-/// This is an extension of the [`Zipper`] type where each node in the tree has a unique
+/// This is an extension of the [`SimpleZipper`] type where each node in the tree has a unique
 /// persistent 'tag' associated with it, accessible via the `tag` and `tag_mut` methods.
 ///
 /// ## Lazy Construction & Invalidation
@@ -37,7 +38,7 @@ struct TagNode<D> {
 /// # Example
 /// In this example, tags are used to cache the height of a binary tree.
 /// ```rust
-/// use uniplate::{Uniplate, zipper::TaggedZipper};
+/// use uniplate::{Uniplate, zipper::*};
 ///
 /// /// A simple binary tree.
 /// #[derive(Uniplate, Debug, Clone, PartialEq, Eq)]
@@ -129,32 +130,6 @@ where
         &self.zipper
     }
 
-    /// Borrows the current focus.
-    ///
-    /// Mutable access to the inner tree is not provided, as it could break the tag structure.
-    pub fn focus(&self) -> &T {
-        self.zipper.focus()
-    }
-
-    /// Replaces the focus of the [Zipper], returning the old focus.
-    ///
-    /// This will also invalidate the tags for the current focus and all its descendants,
-    /// as the subtree structure may have changed.
-    pub fn replace_focus(&mut self, new_focus: T) -> T {
-        let old_focus = self.zipper.replace_focus(new_focus);
-
-        // Tags for the old subtree are now invalid
-        self.invalidate_subtree();
-
-        old_focus
-    }
-
-    /// Rebuilds the root node, consuming the [`Zipper`].
-    pub fn rebuild_root(self) -> T {
-        // Don't care about tag structure as the zipper is consumed
-        self.zipper.rebuild_root()
-    }
-
     /// Borrows the tag of the current focus.
     pub fn tag(&self) -> Ref<'_, D> {
         Ref::map(self.tag_node.borrow(), |node| &node.data)
@@ -190,9 +165,33 @@ where
         }));
         let _ = std::mem::replace(&mut self.tag_node, new_tag);
     }
+}
 
-    /// Sets the focus to the parent of the focus (if it exists).
-    pub fn go_up(&mut self) -> Option<()> {
+impl<T, D, F> super::Zipper<T> for TaggedZipper<T, D, F>
+where
+    T: Uniplate,
+    D: Clone,
+    F: FnMut(&T) -> D,
+{
+    fn focus(&self) -> &T {
+        self.zipper.focus()
+    }
+
+    fn replace_focus(&mut self, new_focus: T) -> T {
+        let old_focus = self.zipper.replace_focus(new_focus);
+
+        // Tags for the old subtree are now invalid
+        self.invalidate_subtree();
+
+        old_focus
+    }
+
+    fn rebuild_root(self) -> T {
+        // Don't care about tag structure as the zipper is consumed
+        self.zipper.rebuild_root()
+    }
+
+    fn go_up(&mut self) -> Option<()> {
         self.zipper.go_up()?;
 
         // Can unwrap safely because we know there is a parent node
@@ -202,8 +201,7 @@ where
         Some(())
     }
 
-    /// Sets the focus to the left-most child of the focus (if it exists).
-    pub fn go_down(&mut self) -> Option<()> {
+    fn go_down(&mut self) -> Option<()> {
         self.zipper.go_down()?;
 
         // Move to or create the first child tag node
@@ -225,8 +223,7 @@ where
         Some(())
     }
 
-    /// Sets the focus to the left sibling of the focus (if it exists).
-    pub fn go_left(&mut self) -> Option<()> {
+    fn go_left(&mut self) -> Option<()> {
         self.zipper.go_left()?;
 
         // Left sibling tags always exist, as go_down goes to the left-most child.
@@ -238,8 +235,7 @@ where
         Some(())
     }
 
-    /// Sets the focus to the right sibling of the focus (if it exists).
-    pub fn go_right(&mut self) -> Option<()> {
+    fn go_right(&mut self) -> Option<()> {
         self.zipper.go_right()?;
 
         let parent_tag_node = self.tag_node.borrow().parent.clone().unwrap();
@@ -262,5 +258,21 @@ where
         };
 
         Some(())
+    }
+
+    fn has_up(&self) -> bool {
+        self.zipper.has_up()
+    }
+
+    fn has_down(&self) -> bool {
+        self.zipper.has_down()
+    }
+
+    fn has_left(&self) -> bool {
+        self.zipper.has_left()
+    }
+
+    fn has_right(&self) -> bool {
+        self.zipper.has_right()
     }
 }

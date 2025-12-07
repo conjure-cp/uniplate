@@ -22,3 +22,49 @@ mod zipper;
 
 pub use tagged_zipper::TaggedZipper;
 pub use zipper::{SimpleZipper, SimpleZipperBi};
+
+use crate::Uniplate;
+
+/// A cursor into a tree-like data structure. See the [module-level documentation](crate::zipper) for more.
+///
+/// Custom types can implement this trait and add useful behaviour on top of simple tree traversal.
+/// Some already do: see [`TaggedZipper`].
+pub trait Zipper<T>
+where
+    T: Uniplate,
+{
+    /// Borrows the current focus.
+    fn focus(&self) -> &T;
+
+    /// Replaces the current focus, returning the old focus.
+    ///
+    /// This operation is usually O(1); see the [module-level documentation](crate::zipper)
+    fn replace_focus(&mut self, new_focus: T) -> T;
+
+    /// Rebuilds the root node, consuming the [`Zipper`].
+    fn rebuild_root(self) -> T;
+
+    /// Sets the focus to the parent of the current focus (if it exists).
+    fn go_up(&mut self) -> Option<()>;
+
+    /// Sets the focus to the left-most child of the current focus (if it exists).
+    fn go_down(&mut self) -> Option<()>;
+
+    /// Sets the focus to the left sibling of the current focus (if it exists).
+    fn go_left(&mut self) -> Option<()>;
+
+    /// Sets the focus to the right sibling of the current focus (if it exists).
+    fn go_right(&mut self) -> Option<()>;
+
+    /// Returns whether the current focus has a parent.
+    fn has_up(&self) -> bool;
+
+    /// Returns whether the current focus has children.
+    fn has_down(&self) -> bool;
+
+    /// Returns whether the current focus has a left sibling.
+    fn has_left(&self) -> bool;
+
+    /// Returns whether the current focus has a right sibling.
+    fn has_right(&self) -> bool;
+}

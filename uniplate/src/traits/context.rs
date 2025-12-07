@@ -1,6 +1,6 @@
 //! The underlying iterator for `Uniplate::context()`cionte
 
-use crate::zipper::{SimpleZipper, SimpleZipperBi};
+use crate::zipper::*;
 
 use super::{Biplate, Uniplate};
 
