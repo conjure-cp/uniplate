@@ -205,8 +205,6 @@ fn _derive_for_field_enum(
                 let #children_ident = ::uniplate::Tree::Many(::std::collections::VecDeque::from([#(#tuple_field_children_idents),*]));
             };
 
-            let index = (0..tuple_type.n).map(syn::Index::from);
-
             // build the context function
             let build_child_ctx = quote! {
                 let #ctx_ident = Box::new(move |x| {
@@ -214,7 +212,8 @@ fn _derive_for_field_enum(
                         panic!()
                     };
 
-                    (#(#tuple_field_ctx_idents(xs[#index].clone())),*)
+                    let mut xs = xs.into_iter();
+                    (#(#tuple_field_ctx_idents(xs.next().unwrap())),*)
                 });
             };
 
@@ -255,8 +254,6 @@ fn _derive_for_field_enum(
                 let #children_ident = ::uniplate::Tree::Many(::std::collections::VecDeque::from([#(#tuple_field_children_idents),*]));
             };
 
-            let index = (0..tuple_type.n).map(syn::Index::from);
-
             // build the context function
             let build_child_ctx = quote! {
                 let #ctx_ident = Box::new(move |x| {
@@ -264,7 +261,8 @@ fn _derive_for_field_enum(
                         panic!()
                     };
 
-                    (#(#tuple_field_ctx_idents(xs[#index].clone())),*)
+                    let mut xs = xs.into_iter();
+                    (#(#tuple_field_ctx_idents(xs.next().unwrap())),*)
                 });
             };
 
@@ -329,8 +327,6 @@ fn _derive_for_field_struct(
                 let #children_ident = ::uniplate::Tree::Many(::std::collections::VecDeque::from([#(#tuple_field_children_idents),*]));
             };
 
-            let index = (0..tuple_type.n).map(syn::Index::from);
-
             // build the context function
             let build_child_ctx = quote! {
                 let #ctx_ident = Box::new(move |x| {
@@ -338,7 +334,8 @@ fn _derive_for_field_struct(
                         panic!()
                     };
 
-                    (#(#tuple_field_ctx_idents(xs[#index].clone())),*)
+                    let mut xs = xs.into_iter();
+                    (#(#tuple_field_ctx_idents(xs.next().unwrap())),*)
                 });
             };
 
@@ -379,8 +376,6 @@ fn _derive_for_field_struct(
                 let #children_ident = ::uniplate::Tree::Many(::std::collections::VecDeque::from([#(#tuple_field_children_idents),*]));
             };
 
-            let index = (0..tuple_type.n).map(syn::Index::from);
-
             // build the context function
             let build_child_ctx = quote! {
                 let #ctx_ident = Box::new(move |x| {
@@ -388,7 +383,8 @@ fn _derive_for_field_struct(
                         panic!()
                     };
 
-                    (#(#tuple_field_ctx_idents(xs[#index].clone())),*)
+                    let mut xs = xs.into_iter();
+                    (#(#tuple_field_ctx_idents(xs.next().unwrap())),*)
                 });
             };
 
@@ -428,15 +424,15 @@ fn _derive_ctx(
     let field_ctxs: Vec<_> = fields
         .defs()
         .enumerate()
-        .map(|(i, (mem, typ))| match typ {
+        .map(|(_i, (mem, typ))| match typ {
             ast::Type::Basic(_) | ast::Type::Tuple(_) => {
                 let ctx_ident = format_ident!("_{}_ctx", mem);
-                quote! {#ctx_ident(x[#i].clone())}
+                quote! {#ctx_ident(x.next().unwrap())}
             }
 
             ast::Type::BoxedBasic(_) | ast::Type::BoxedTuple(_) => {
                 let ctx_ident = format_ident!("_{}_ctx", mem);
-                quote! {Box::new(#ctx_ident(x[#i].clone()))}
+                quote! {Box::new(#ctx_ident(x.next().unwrap()))}
             }
         })
         .collect();
@@ -482,6 +478,7 @@ fn _derive_ctx(
         quote! {
             let ctx = Box::new(move |x: ::uniplate::Tree<#typ>| {
                 let ::uniplate::Tree::Many(x) = x else { panic!()};
+                let mut x = x.into_iter();
                 #construct
         });}
     }
