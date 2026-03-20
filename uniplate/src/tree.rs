@@ -9,7 +9,7 @@ use self::Tree::*;
 /// [`Biplate`](super::Biplate) instances.
 ///
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Tree<T: Sized + Clone + Eq> {
+pub enum Tree<T: Sized + Eq> {
     /// This element cannot contains no children.
     Zero,
 
@@ -24,7 +24,7 @@ pub enum Tree<T: Sized + Clone + Eq> {
 // worth it when we use all the children returned. This is what we use this for inside Uniplate.
 // Because of this, I think a .iter() / IntoIterator for Tree<&T> is a bad idea.
 
-impl<T: Sized + Clone + Eq> Tree<T> {
+impl<T: Eq> Tree<T> {
     /// Returns true if the tree contains any `One` variants, false otherwise.
     pub fn is_empty(&self) -> bool {
         match self {
@@ -35,7 +35,7 @@ impl<T: Sized + Clone + Eq> Tree<T> {
     }
 }
 
-impl<T: Sized + Clone + Eq + 'static> IntoIterator for Tree<T> {
+impl<T: Sized + Eq + 'static> IntoIterator for Tree<T> {
     type Item = T;
 
     type IntoIter = std::collections::vec_deque::IntoIter<T>;
@@ -44,7 +44,7 @@ impl<T: Sized + Clone + Eq + 'static> IntoIterator for Tree<T> {
         self.list().0.into_iter()
     }
 }
-impl<T: Sized + Clone + Eq + 'static> Tree<T> {
+impl<T: Sized + Eq + 'static> Tree<T> {
     /// Returns the tree as a list alongside a function to reconstruct the tree from a list.
     ///
     /// This preserves the structure of the tree.
@@ -53,7 +53,7 @@ impl<T: Sized + Clone + Eq + 'static> Tree<T> {
         // inspired by the Uniplate Haskell equivalent Data.Generics.Str::strStructure
         // https://github.com/ndmitchell/uniplate/blob/master/Data/Generics/Str.hs#L85
 
-        fn flatten<T: Sized + Clone + Eq>(t: Tree<T>, xs: VecDeque<T>) -> VecDeque<T> {
+        fn flatten<T: Sized + Eq>(t: Tree<T>, xs: VecDeque<T>) -> VecDeque<T> {
             match (t, xs) {
                 (Zero, xs) => xs,
                 (One(x), mut xs1) => {
@@ -64,10 +64,27 @@ impl<T: Sized + Clone + Eq + 'static> Tree<T> {
             }
         }
 
+        #[derive(PartialEq, Eq)]
+        struct DummyType;
+
+        // given a tree, construct a tree with the same structure but zero sized arguments.
+        fn construct_dummy_tree<T: Sized + Eq>(t: &Tree<T>) -> Tree<DummyType> {
+            match t {
+                Zero => Tree::Zero,
+                One(_) => Tree::One(DummyType {}),
+                Many(trees) => Tree::Many(
+                    trees
+                        .iter()
+                        .map(construct_dummy_tree)
+                        .collect::<VecDeque<Tree<DummyType>>>(),
+                ),
+            }
+        }
+
         // Iterate over both the old tree and the new list.
         // We use the node types of the old tree to know what node types to use for the new tree.
-        fn recons<T: Sized + Clone + Eq>(
-            old_tree: Tree<T>,
+        fn recons<T: Sized + Eq>(
+            old_tree: &Tree<DummyType>,
             xs: VecDeque<T>,
         ) -> (Tree<T>, VecDeque<T>) {
             #[allow(clippy::unwrap_used)]
@@ -86,9 +103,11 @@ impl<T: Sized + Clone + Eq + 'static> Tree<T> {
                 }
             }
         }
+
+        let dummy_tree = construct_dummy_tree(&self);
         (
-            flatten(self.clone(), VecDeque::new()),
-            Box::new(move |xs| recons(self.clone(), xs).0),
+            flatten(self, VecDeque::new()),
+            Box::new(move |xs| recons(&dummy_tree, xs).0),
         )
     }
 
