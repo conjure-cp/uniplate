@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.6](https://github.com/conjure-cp/uniplate/compare/uniplate-derive-v0.4.5...uniplate-derive-v0.4.6) - 2026-03-25
+
+### Other
+
+- *(uniplate-derive)* remove some clones in derive macro ([#121](https://github.com/conjure-cp/uniplate/pull/121))
+
 ## [0.4.4](https://github.com/conjure-cp/uniplate/compare/uniplate-derive-v0.4.3...uniplate-derive-v0.4.4) - 2025-10-21
 
 ### Other
