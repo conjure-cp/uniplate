@@ -85,6 +85,45 @@ where
         self.biplate().0.list().0
     }
 
+    /// Number of children that would be returned by [`children_bi`](Self::children_bi).
+    ///
+    /// The default implementation builds the child list. Collection types override this when the
+    /// count is available without cloning siblings.
+    fn children_bi_count(&self) -> usize {
+        self.children_bi().len()
+    }
+
+    /// Replaces the `index`th child of type `To` within `self`.
+    ///
+    /// Returns `false` when `index` is out of range.
+    ///
+    /// The default implementation uses [`children_bi`](Self::children_bi) and
+    /// [`with_children_bi`](Self::with_children_bi). Types with owned same-type children (e.g.
+    /// `Vec<T>: Biplate<T>`) override this for an in-place update.
+    fn try_replace_child_at_bi(&mut self, index: usize, child: To) -> bool {
+        if std::any::TypeId::of::<Self>() == std::any::TypeId::of::<To>() {
+            if index != 0 {
+                return false;
+            }
+            // Biplate<T> for T treats the value as its only child.
+            // SAFETY: TypeId equality means Self and To are the same type.
+            unsafe {
+                let child_as_self = std::mem::transmute_copy::<To, Self>(&child);
+                std::mem::forget(child);
+                *self = child_as_self;
+            }
+            return true;
+        }
+
+        let mut children = self.children_bi();
+        if index >= children.len() {
+            return false;
+        }
+        children[index] = child;
+        *self = self.with_children_bi(children);
+        true
+    }
+
     /// Applies the given function to all nodes bottom up.
     ///
     /// Biplate variant of [`Uniplate::transform`]

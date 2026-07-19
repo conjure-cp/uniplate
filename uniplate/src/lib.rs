@@ -138,6 +138,58 @@ macro_rules! derive_iter {
             T: Clone + Eq + ::uniplate::Uniplate + Sized + 'static,
             F: Clone + Eq + ::uniplate::Uniplate + ::uniplate::Biplate<T> + Sized + 'static,
         {
+            fn children_bi_count(&self) -> usize {
+                if std::any::TypeId::of::<T>() == std::any::TypeId::of::<F>() {
+                    self.len()
+                } else if std::any::TypeId::of::<T>() == std::any::TypeId::of::<$iter_ty<F>>() {
+                    1
+                } else {
+                    self.iter()
+                        .map(|item| <F as ::uniplate::Biplate<T>>::children_bi_count(item))
+                        .sum()
+                }
+            }
+
+            fn try_replace_child_at_bi(&mut self, index: usize, child: T) -> bool {
+                // T == F: children are exactly the collection elements.
+                if std::any::TypeId::of::<T>() == std::any::TypeId::of::<F>() {
+                    if index >= self.len() {
+                        return false;
+                    }
+                    // SAFETY: TypeId equality means T and F are the same type.
+                    unsafe {
+                        let child_as_f = std::mem::transmute_copy::<T, F>(&child);
+                        std::mem::forget(child);
+                        // Vec and VecDeque both support IndexMut.
+                        self[index] = child_as_f;
+                    }
+                    return true;
+                }
+
+                // Biplate<Vec<F>> for Vec<F>: the collection is its only child.
+                if std::any::TypeId::of::<T>() == std::any::TypeId::of::<$iter_ty<F>>() {
+                    if index != 0 {
+                        return false;
+                    }
+                    // SAFETY: TypeId equality means T and $iter_ty<F> are the same type.
+                    unsafe {
+                        let child_as_self = std::mem::transmute_copy::<T, $iter_ty<F>>(&child);
+                        std::mem::forget(child);
+                        *self = child_as_self;
+                    }
+                    return true;
+                }
+
+                // Nested T's inside each F: fall back to the default clone/rebuild path.
+                let mut children = self.children_bi();
+                if index >= children.len() {
+                    return false;
+                }
+                children[index] = child;
+                *self = self.with_children_bi(children);
+                true
+            }
+
             fn biplate(
                 &self,
             ) -> (

@@ -63,6 +63,24 @@ where
         }
     }
 
+    /// Replaces the `index`th direct child of `self`.
+    ///
+    /// Returns `false` when `index` is out of range.
+    ///
+    /// The default implementation uses [`children`](Self::children) and
+    /// [`with_children`](Self::with_children), which clones every sibling. Derived `Uniplate`
+    /// implementations override this to update a single child slot when possible (in particular
+    /// for owned `Vec` children).
+    fn try_replace_child_at(&mut self, index: usize, child: Self) -> bool {
+        let mut children = self.children();
+        if index >= children.len() {
+            return false;
+        }
+        children[index] = child;
+        *self = self.with_children(children);
+        true
+    }
+
     /// Applies the given function to all nodes bottom up.
     fn transform(&self, f: &impl Fn(Self) -> Self) -> Self {
         let (children, ctx) = self.uniplate();
