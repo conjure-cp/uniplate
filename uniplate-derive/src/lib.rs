@@ -35,6 +35,10 @@ fn derive_a_uniplate(state: &mut ParserState) -> TokenStream2 {
         ast::Data::DataEnum(x) => _derive_a_enum_uniplate(state, x),
         ast::Data::DataStruct(x) => _derive_a_struct_uniplate(state, x),
     };
+    let replace_tokens: TokenStream2 = match state.data.clone() {
+        ast::Data::DataEnum(x) => _derive_a_enum_try_replace_child_at(state, x),
+        ast::Data::DataStruct(x) => _derive_a_struct_try_replace_child_at(state, x),
+    };
 
     let mut generics = state.data.generics().clone();
     for (_, bounds) in generics.type_parameters.iter_mut() {
@@ -48,6 +52,10 @@ fn derive_a_uniplate(state: &mut ParserState) -> TokenStream2 {
         impl<#impl_bounds> ::uniplate::Uniplate for #from #where_clause {
             fn uniplate(&self) -> (::uniplate::Tree<#from>, Box<dyn Fn(::uniplate::Tree<#from>) -> #from>) {
                 #tokens
+            }
+
+            fn try_replace_child_at(&mut self, index: usize, child: #from) -> bool {
+                #replace_tokens
             }
         }
     }
@@ -115,6 +123,213 @@ fn _derive_a_enum_uniplate(state: &mut ParserState, data: ast::DataEnum) -> Toke
     quote! {
         match self {
             #(#variant_tokens)*
+        }
+    }
+}
+
+fn _derive_a_enum_try_replace_child_at(
+    state: &mut ParserState,
+    data: ast::DataEnum,
+) -> TokenStream2 {
+    let enum_ident = state.data.ident();
+    let mut variant_tokens = VecDeque::<TokenStream2>::new();
+
+    for variant in data.variants {
+        let ident = variant.ident.clone();
+        let field_idents: Vec<_> = variant.fields.idents().collect();
+        let field_replace = _derive_fields_try_replace_child_at(state, &variant.fields, true);
+
+        match &variant.fields {
+            // Match on `&mut self`: Rust 2024 match ergonomics bind fields as `&mut _`
+            // without writing `ref mut` explicitly.
+            ast::Fields::Struct(_) => {
+                variant_tokens.push_back(quote! {
+                    #enum_ident::#ident { #(#field_idents),* } => {
+                        #field_replace
+                    },
+                });
+            }
+            ast::Fields::Tuple(_) => {
+                variant_tokens.push_back(quote! {
+                    #enum_ident::#ident(#(#field_idents),*) => {
+                        #field_replace
+                    },
+                });
+            }
+            ast::Fields::Unit => {
+                variant_tokens.push_back(quote! {
+                    #enum_ident::#ident => {
+                        let _ = &child;
+                        false
+                    },
+                });
+            }
+        }
+    }
+
+    let variant_tokens = variant_tokens.iter();
+    quote! {
+        let mut index = index;
+        let mut child = ::std::option::Option::Some(child);
+        match self {
+            #(#variant_tokens)*
+        }
+    }
+}
+
+fn _derive_a_struct_try_replace_child_at(
+    state: &mut ParserState,
+    data: ast::DataStruct,
+) -> TokenStream2 {
+    if data.fields.is_empty() {
+        return quote! { false };
+    }
+
+    let field_replace = _derive_fields_try_replace_child_at(state, &data.fields, false);
+    quote! {
+        let mut index = index;
+        let mut child = ::std::option::Option::Some(child);
+        #field_replace
+    }
+}
+
+/// Generates field-by-field try-replace.
+///
+/// When `bindings` is true, fields are `ref mut` match bindings; otherwise they are `self.field`.
+fn _derive_fields_try_replace_child_at(
+    state: &mut ParserState,
+    fields: &ast::Fields,
+    bindings: bool,
+) -> TokenStream2 {
+    let from = state.from.to_token_stream();
+    let mut parts = Vec::<TokenStream2>::new();
+
+    for (member, typ) in fields.defs() {
+        let field_path = if bindings {
+            match member {
+                syn::Member::Named(ident) => quote!(#ident),
+                syn::Member::Unnamed(index) => {
+                    let ident = format_ident!("_{}", index);
+                    quote!(#ident)
+                }
+            }
+        } else {
+            quote!(self.#member)
+        };
+
+        parts.push(_derive_one_field_try_replace(
+            &from, typ, field_path, bindings,
+        ));
+    }
+
+    quote! {
+        #(#parts)*
+        let _ = child;
+        false
+    }
+}
+
+fn _derive_one_field_try_replace(
+    from: &TokenStream2,
+    typ: &ast::Type,
+    field_path: TokenStream2,
+    bindings: bool,
+) -> TokenStream2 {
+    let mut_ref = if bindings {
+        quote!(#field_path)
+    } else {
+        quote!(&mut #field_path)
+    };
+
+    match typ {
+        ast::Type::Basic(_) => {
+            quote! {
+                {
+                    let count = ::uniplate::try_biplate_children_bi_count!(#mut_ref, #from);
+                    if index < count {
+                        return ::uniplate::try_biplate_replace_child_at!(
+                            #mut_ref,
+                            #from,
+                            index,
+                            child.take().expect("replacement child already taken")
+                        );
+                    }
+                    index -= count;
+                }
+            }
+        }
+        ast::Type::BoxedBasic(_) => {
+            let inner = if bindings {
+                quote!(&mut **#field_path)
+            } else {
+                quote!(&mut *#field_path)
+            };
+            quote! {
+                {
+                    let count = ::uniplate::try_biplate_children_bi_count!(#inner, #from);
+                    if index < count {
+                        return ::uniplate::try_biplate_replace_child_at!(
+                            #inner,
+                            #from,
+                            index,
+                            child.take().expect("replacement child already taken")
+                        );
+                    }
+                    index -= count;
+                }
+            }
+        }
+        ast::Type::Tuple(tuple_type) => {
+            let n = tuple_type.n;
+            let idxs: Vec<_> = (0..n).map(syn::Index::from).collect();
+            let mut tuple_parts = Vec::new();
+            for idx in &idxs {
+                let elem = quote!(&mut (#field_path).#idx);
+                tuple_parts.push(quote! {
+                    {
+                        let count = ::uniplate::try_biplate_children_bi_count!(#elem, #from);
+                        if index < count {
+                            return ::uniplate::try_biplate_replace_child_at!(
+                                #elem,
+                                #from,
+                                index,
+                                child.take().expect("replacement child already taken")
+                            );
+                        }
+                        index -= count;
+                    }
+                });
+            }
+            let _ = n;
+            quote! { #(#tuple_parts)* }
+        }
+        ast::Type::BoxedTuple(tuple_type) => {
+            let n = tuple_type.n;
+            let idxs: Vec<_> = (0..n).map(syn::Index::from).collect();
+            let mut tuple_parts = Vec::new();
+            for idx in &idxs {
+                let elem = if bindings {
+                    quote!(&mut (**#field_path).#idx)
+                } else {
+                    quote!(&mut (*#field_path).#idx)
+                };
+                tuple_parts.push(quote! {
+                    {
+                        let count = ::uniplate::try_biplate_children_bi_count!(#elem, #from);
+                        if index < count {
+                            return ::uniplate::try_biplate_replace_child_at!(
+                                #elem,
+                                #from,
+                                index,
+                                child.take().expect("replacement child already taken")
+                            );
+                        }
+                        index -= count;
+                    }
+                });
+            }
+            let _ = n;
+            quote! { #(#tuple_parts)* }
         }
     }
 }
@@ -538,6 +753,18 @@ fn _derive_identity_biplate(state: &mut ParserState, from: TokenStream2) -> Toke
                     let ::uniplate::Tree::One(x) = x else {todo!()};
                     x
                 }))
+            }
+
+            fn children_bi_count(&self) -> usize {
+                1
+            }
+
+            fn try_replace_child_at_bi(&mut self, index: usize, child: #from) -> bool {
+                if index != 0 {
+                    return false;
+                }
+                *self = child;
+                true
             }
         }
     }

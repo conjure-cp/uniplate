@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Uniplate::try_replace_child_at` and `Biplate::try_replace_child_at_bi` /
+  `children_bi_count` for updating a single child by index. Derived `Uniplate`
+  implementations walk fields and `Vec`/`VecDeque` update same-type elements in
+  place without cloning siblings.
+
 ## [0.4.6](https://github.com/conjure-cp/uniplate/compare/v0.4.5...v0.4.6) - 2026-03-25
 
 This release consists of performance improvements.
