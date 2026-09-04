@@ -3,6 +3,8 @@ name: Release-plz
 
 # The action runs on every push to the main branch.
 on:
+  workflow_dispatch:
+  
   push:
     branches:
       - main
