@@ -30,8 +30,9 @@ jobs:
           # `fetch-depth: 0` is needed to clone all the git history, which is necessary to
           # release from the latest commit of the release PR.
           fetch-depth: 0
-          persist-credentials: false
-
+          # enabled so release-plz can push its commits, see: https://release-plz.dev/docs/github/persist-credentials
+          persist-credentials: true
+          
       - &install-rust
         name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
